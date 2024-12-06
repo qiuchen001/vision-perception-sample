@@ -4,6 +4,8 @@ import os
 import json
 from openai import OpenAI
 from app.prompt import mining
+from dotenv import load_dotenv
+load_dotenv()
 
 
 def parse_json_string(json_str):
@@ -76,7 +78,7 @@ class MiningVideoService:
         return format_mining_result(mining_json, video_url)
 
     def mining_video_handler(self, video_url):
-        model_name = "qwen-vl-max-latest"
+        model_name = os.getenv("MODEL_NAME")
 
         client = OpenAI(
             api_key=os.getenv("DASHSCOPE_API_KEY"),

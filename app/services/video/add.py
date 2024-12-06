@@ -21,14 +21,10 @@ class AddVideoService:
 
 
     def add(self, video_url, action_type):
-        # if not self.video_dao.check_url_exists(video_url):
-        #     # 输出异常
-        #     return
-
         video_info = self.video_dao.get_by_path(video_url)
         print(f"video_info: {video_info}")
         if len(video_info) == 0:
-            return
+            raise ValueError("未找到视频信息")
 
         video = video_info[0]
 
@@ -54,9 +50,8 @@ class AddVideoService:
             summary_txt = self.parse_summary_result(summary_result)
             video['summary_txt'] = summary_txt
             video['embedding'] = embed_fn(summary_txt)
-
         else:
-            return
+            raise ValueError("无效的操作类型")
 
         self.video_dao.upsert_video(video)
 

@@ -18,7 +18,6 @@ class SearchVideoService:
                     'distance': hit['distance'],
                     'path': entity.get('path'),
                     'summary_txt': entity.get('summary_txt'),
-                    # 'tags': entity.get('tags'),
                     'tags': list(entity.get("tags", [])),  # 将 RepeatedScalarContainer 转换为列表
 
                 }
