@@ -4,6 +4,7 @@ from ..services.video.upload import UploadVideoService
 from ..services.video.mining import MiningVideoService
 from ..services.video.summary import SummaryVideoService
 from ..services.video.add import AddVideoService
+from ..services.video.search import SearchVideoService
 
 from ..utils.logger import logger
 
@@ -91,6 +92,27 @@ def add_video():
             "code": 0,
             "data": {
                 "m_id": m_id
+            }
+        }
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error in mining video: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route('search', methods=['POST'])
+def search_video():
+    txt = request.form.get('txt')
+
+    try:
+        video_service = SearchVideoService()
+        video_list = video_service.search(txt)
+
+        response = {
+            "msg": "success",
+            "code": 0,
+            "data": {
+                "list": video_list
             }
         }
         return jsonify(response), 200

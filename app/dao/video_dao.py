@@ -60,3 +60,23 @@ class VideoDAO:
             "tags": video['tags']
         }
         self.milvus_client.upsert(self.collection_name, [user_data])
+
+    def search_video(self, embedding):
+        search_params = {
+            "metric_type": "IP",  # 指定相似度度量类型，IP表示内积（Inner Product）
+            "offset": 0,  # 搜索结果的偏移量，从第0个结果开始
+            "ignore_growing": False,  # 是否忽略正在增长的索引，False表示不忽略
+            "params": {"nprobe": 16}  # 搜索参数，nprobe表示要探测的聚类数
+        }
+
+        result = self.milvus_client.search(
+            collection_name=self.collection_name,  # 指定搜索的集合名称
+            anns_field="embedding",  # 指定用于搜索的字段，这里是embedding字段
+            data=[embedding],  # 要搜索的向量数据
+            limit=6,  # 返回的最大结果数
+            search_params=search_params,  # 搜索参数
+            output_fields=['m_id', 'path', 'summary_txt', 'tags'],  # 指定返回的字段
+            consistency_level="Strong"  # 一致性级别，Strong表示强一致性
+        )
+        return result
+
