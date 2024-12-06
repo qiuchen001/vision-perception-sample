@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from ..services.video_service import VideoService
 from ..services.video.upload import UploadVideoService
 from ..services.video.mining import MiningVideoService
+from ..services.video.summary import SummaryVideoService
 
 from ..utils.logger import logger
 
@@ -58,4 +59,22 @@ def mining_video():
         return jsonify(response), 200
     except Exception as e:
         logger.error(f"Error in mining video: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route('summary', methods=['POST'])
+def summary_video():
+    video_url = request.form.get('file_name')
+    try:
+        video_service = SummaryVideoService()
+        mining_content_json = video_service.summary(video_url)
+
+        response = {
+            "msg": "success",
+            "code": 0,
+            "data": mining_content_json
+        }
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error in summary video: {e}")
         return jsonify({"error": str(e)}), 500
