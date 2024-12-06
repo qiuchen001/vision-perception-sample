@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from ..services.video_service import VideoService
 from ..services.video.upload import UploadVideoService
+from ..services.video.mining import MiningVideoService
 
 from ..utils.logger import logger
 
@@ -46,14 +47,8 @@ def upload_video():
 def mining_video():
     video_url = request.form.get('file_name')
     try:
-        # mining_result = mining_video_handler(video_url)
-        # js = json.loads(mining_result)
-        # content = js['choices'][0]['message']['content']
-        # mining_json = parse_json_string(content)
-        # mining_result_new = format_mining_result(mining_json, video_url)
-        video_service = VideoService()
+        video_service = MiningVideoService()
         mining_result_new = video_service.mining(video_url)
-
 
         response = {
             "msg": "success",
