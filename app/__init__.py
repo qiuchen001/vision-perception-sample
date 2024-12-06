@@ -2,6 +2,9 @@ from flask import Flask
 from logging.config import dictConfig
 import logging_config
 from milvus_client import MilvusClientWrapper
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 def create_app(config_name):
@@ -14,7 +17,9 @@ def create_app(config_name):
     dictConfig(logging_config.LOGGING_CONFIG)
 
     # 初始化 Milvus 客户端
-    app.config['MILVUS_CLIENT'] = MilvusClientWrapper(uri="http://10.66.12.37:19530", db_name="summary_video_db")
+    SERVER_HOST = os.getenv("DB_NAME")
+    app.config['SERVER_HOST'] = SERVER_HOST
+    app.config['MILVUS_CLIENT'] = MilvusClientWrapper(uri=f"http://{SERVER_HOST}:19530", db_name="video_db")
 
     from .routes import main, video_api
     app.register_blueprint(main.bp)

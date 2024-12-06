@@ -1,5 +1,6 @@
-from pymilvus import DataType
+from pymilvus import DataType, db
 from flask import current_app
+from ..utils.logger import logger
 
 class Video:
     def __init__(self, m_id, embedding, path, thumbnail_path, summary_txt, tags):
@@ -9,6 +10,14 @@ class Video:
         self.thumbnail_path = thumbnail_path
         self.summary_txt = summary_txt
         self.tags = tags
+
+
+    @staticmethod
+    def create_database():
+        milvus_client = current_app.config['MILVUS_CLIENT']
+        milvus_client.create_database("video_db")
+        logger.info("当前数据库列表: %s", db.list_database())
+
 
     @staticmethod
     def create_schema():

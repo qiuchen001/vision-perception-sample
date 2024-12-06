@@ -6,11 +6,18 @@ from flask import current_app
 
 class VideoDAO:
     def __init__(self):
-        self.milvus_client = MilvusClient(uri="http://10.66.12.37:19530", db_name="summary_video_db")
+        SERVER_HOST = current_app.config['SERVER_HOST']
+        self.milvus_client = MilvusClient(uri=f"http://{SERVER_HOST}:19530", db_name="video_db")
         # self.milvus_client = current_app.config['MILVUS_CLIENT']
         self.collection_name = "video_collection"
         self.schema = Video.create_schema()
         Video.create_collection(self.collection_name, self.schema)
+        Video.create_index(self.collection_name)
+
+    def init_video(self):
+        Video.create_database()
+        schema = Video.create_schema()
+        Video.create_collection(self.collection_name, schema)
         Video.create_index(self.collection_name)
 
     def get_all_videos(self):

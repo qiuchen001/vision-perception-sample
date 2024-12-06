@@ -5,6 +5,7 @@ from ..services.video.summary import SummaryVideoService
 from ..services.video.add import AddVideoService
 from ..services.video.search import SearchVideoService
 from ..utils.logger import logger
+from app.dao.video_dao import VideoDAO
 
 
 bp = Blueprint('video', __name__)
@@ -103,6 +104,23 @@ def search_video():
             "data": {
                 "list": video_list
             }
+        }
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error in mining video: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route('init', methods=['POST'])
+def init():
+    try:
+        video_dao = VideoDAO()
+        video_dao.init_video()
+
+        response = {
+            "msg": "success",
+            "code": 0,
+            "data": {}
         }
         return jsonify(response), 200
     except Exception as e:
