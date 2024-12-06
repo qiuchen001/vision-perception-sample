@@ -14,12 +14,16 @@ class SearchVideoService:
                 hit = search_result[0][idx]
                 entity = hit.get('entity')
 
+                tags = entity.get("tags")
+                if tags is None:
+                    tags = []
+
                 video_info = {
                     'm_id': hit['id'],
                     'distance': hit['distance'],
                     'path': entity.get('path'),
                     'summary_txt': entity.get('summary_txt'),
-                    'tags': list(entity.get("tags", [])),  # 将 RepeatedScalarContainer 转换为列表
+                    'tags': list(tags),  # 将 RepeatedScalarContainer 转换为列表
 
                 }
                 video_list.append(video_info)
