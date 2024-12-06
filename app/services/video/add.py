@@ -8,7 +8,8 @@ class AddVideoService:
     def __init__(self):
         self.video_dao = VideoDAO()
 
-    def parse_mining_result(self, mining_results):
+    @staticmethod
+    def parse_mining_result(mining_results):
         tags = []
         for item in mining_results:
             tag = item["behaviour"]["behaviourName"]
@@ -16,7 +17,8 @@ class AddVideoService:
         return tags
 
 
-    def parse_summary_result(self, summary_result):
+    @staticmethod
+    def parse_summary_result(summary_result):
         return summary_result['summary']
 
 

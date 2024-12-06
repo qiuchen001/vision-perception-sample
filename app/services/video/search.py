@@ -6,7 +6,8 @@ class SearchVideoService:
     def __init__(self):
         self.video_dao = VideoDAO()
 
-    def parse_search_result(self, search_result):
+    @staticmethod
+    def parse_search_result(search_result):
         video_list = []
         if search_result[0] is not None:
             for idx in range(len(search_result[0])):

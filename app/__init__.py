@@ -1,7 +1,7 @@
 from flask import Flask
 from logging.config import dictConfig
 import logging_config
-from milvus_client import MilvusClientWrapper  # 导入 Milvus 操作封装模块
+from milvus_client import MilvusClientWrapper
 
 
 def create_app(config_name):

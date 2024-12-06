@@ -77,14 +77,14 @@ class MiningVideoService:
         mining_json = parse_json_string(content)
         return format_mining_result(mining_json, video_url)
 
-    def mining_video_handler(self, video_url):
+    @staticmethod
+    def mining_video_handler(video_url):
         model_name = os.getenv("MODEL_NAME")
 
         client = OpenAI(
             api_key=os.getenv("DASHSCOPE_API_KEY"),
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
-
 
         base64_images = extract_frames_and_convert_to_base64(video_url)
         messages = [

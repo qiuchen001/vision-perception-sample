@@ -2,10 +2,12 @@ from pymilvus import MilvusClient
 from ..models.video import Video
 from ..utils.logger import logger
 import uuid
+from flask import current_app
 
 class VideoDAO:
     def __init__(self):
         self.milvus_client = MilvusClient(uri="http://10.66.12.37:19530", db_name="summary_video_db")
+        # self.milvus_client = current_app.config['MILVUS_CLIENT']
         self.collection_name = "video_collection"
         self.schema = Video.create_schema()
         Video.create_collection(self.collection_name, self.schema)

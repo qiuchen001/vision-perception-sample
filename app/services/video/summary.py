@@ -14,8 +14,6 @@ def parse_json_string(json_str):
 
 
 class SummaryVideoService:
-    def __init__(self):
-        self.video_dao = VideoDAO()
 
     def summary(self, video_url):
         base64_images = extract_frames_and_convert_to_base64(video_url)

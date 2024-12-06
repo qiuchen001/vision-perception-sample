@@ -1,24 +1,13 @@
 from flask import Blueprint, jsonify, request
-from ..services.video_service import VideoService
 from ..services.video.upload import UploadVideoService
 from ..services.video.mining import MiningVideoService
 from ..services.video.summary import SummaryVideoService
 from ..services.video.add import AddVideoService
 from ..services.video.search import SearchVideoService
-
 from ..utils.logger import logger
 
 
-
 bp = Blueprint('video', __name__)
-
-@bp.route('/get', methods=['GET'])
-def get_users():
-    logger.info("Fetching all users via API")
-    video_service = VideoService()
-    videos = video_service.get_all_videos()
-    # return jsonify([{'id': video['id'], 'username': video['username'], 'email': video['email']} for video in videos])
-    return jsonify([])
 
 @bp.route('upload', methods=['POST'])
 def upload_video():
