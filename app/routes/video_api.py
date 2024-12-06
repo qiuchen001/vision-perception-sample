@@ -1,6 +1,9 @@
 from flask import Blueprint, jsonify, request
 from ..services.video_service import VideoService
+from ..services.video.upload import UploadVideoService
+
 from ..utils.logger import logger
+
 
 
 bp = Blueprint('video', __name__)
@@ -20,7 +23,7 @@ def upload_video():
 
     video_file = request.files['video']
 
-    video_service = VideoService()
+    video_service = UploadVideoService()
     video_oss_url = video_service.upload(video_file)
 
     # video_oss_url = uploadVideoService(video_file)

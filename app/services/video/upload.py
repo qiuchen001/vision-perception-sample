@@ -21,4 +21,4 @@ class UploadVideoService:
             logger.debug(f"Deleted temporary file: {video_file_path}")
 
 
-uploadVideoService = UploadVideoService()
+# uploadVideoService = UploadVideoService()
