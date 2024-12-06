@@ -32,6 +32,12 @@ class VideoDAO:
         query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
         return len(query_result) > 0
 
+
+    def get_by_path(self, url):
+        query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
+        return query_result
+
+
     def insert_url(self, url, embedding):
         # 插入URL到数据库
         video_data = {
@@ -43,3 +49,14 @@ class VideoDAO:
             "tags": None
         }
         self.milvus_client.insert(self.collection_name, [video_data])
+
+    def upsert_video(self, video):
+        user_data = {
+            "m_id": video['m_id'],
+            "embedding": video['embedding'],
+            "path": video['path'],
+            "thumbnail_path": video['thumbnail_path'],
+            "summary_txt": video['summary_txt'],
+            "tags": video['tags']
+        }
+        self.milvus_client.upsert(self.collection_name, [user_data])

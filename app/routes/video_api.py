@@ -3,6 +3,7 @@ from ..services.video_service import VideoService
 from ..services.video.upload import UploadVideoService
 from ..services.video.mining import MiningVideoService
 from ..services.video.summary import SummaryVideoService
+from ..services.video.add import AddVideoService
 
 from ..utils.logger import logger
 
@@ -27,10 +28,6 @@ def upload_video():
 
     video_service = UploadVideoService()
     video_oss_url = video_service.upload(video_file)
-
-    # video_oss_url = uploadVideoService(video_file)
-
-    print(video_oss_url)
 
     response = {
         "msg": "success",
@@ -77,4 +74,26 @@ def summary_video():
         return jsonify(response), 200
     except Exception as e:
         logger.error(f"Error in summary video: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route('add', methods=['POST'])
+def add_video():
+    video_url = request.form.get('video_url')
+    action_type = request.form.get('action_type') # 1. 挖掘 2. 提取摘要 3. 挖掘及提取摘要
+
+    try:
+        video_service = AddVideoService()
+        m_id = video_service.add(video_url, int(action_type))
+
+        response = {
+            "msg": "success",
+            "code": 0,
+            "data": {
+                "m_id": m_id
+            }
+        }
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error in mining video: {e}")
         return jsonify({"error": str(e)}), 500
