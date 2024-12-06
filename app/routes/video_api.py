@@ -109,20 +109,3 @@ def search_video():
     except Exception as e:
         logger.error(f"Error in mining video: {e}")
         return jsonify({"error": str(e)}), 500
-
-
-@bp.route('init', methods=['POST'])
-def init():
-    try:
-        video_dao = VideoDAO()
-        video_dao.init_video()
-
-        response = {
-            "msg": "success",
-            "code": 0,
-            "data": {}
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in mining video: {e}")
-        return jsonify({"error": str(e)}), 500
