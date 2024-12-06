@@ -1,6 +1,7 @@
 from pymilvus import MilvusClient
 from ..models.video import Video
 from ..utils.logger import logger
+import uuid
 
 class VideoDAO:
     def __init__(self):
@@ -24,3 +25,21 @@ class VideoDAO:
             "tags": str(user.tags)  # 将数组转换为字符串
         }
         self.milvus_client.insert(self.collection_name, [user_data])
+
+    def check_url_exists(self, url):
+        # 检查URL是否存在
+        # 返回True或False
+        query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
+        return len(query_result) > 0
+
+    def insert_url(self, url, embedding):
+        # 插入URL到数据库
+        video_data = {
+            "m_id": str(uuid.uuid4()),
+            "embedding": embedding,
+            "path": url,
+            "thumbnail_path": None,
+            "summary_txt": None,
+            "tags": None
+        }
+        self.milvus_client.insert(self.collection_name, [video_data])

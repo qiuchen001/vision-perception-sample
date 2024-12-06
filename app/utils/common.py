@@ -7,7 +7,7 @@ import base64
 import glob
 import shutil
 import ffmpeg
-from flask import Flask, request, jsonify
+
 
 def upload_thumbnail_to_oss(object_name, file_path):
     # 创建 MinioFileUploader 实例

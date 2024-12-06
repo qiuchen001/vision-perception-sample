@@ -1,6 +1,7 @@
 from app.dao.video_dao import VideoDAO
 from app.utils.logger import logger
 from app.utils.common import *
+from app.utils.embedding import *
 from werkzeug.utils import secure_filename
 import os
 
@@ -15,10 +16,13 @@ class UploadVideoService:
         video_file.save(video_file_path)
 
         try:
-            return upload_thumbnail_to_oss(filename, video_file_path)
+            video_oss_url = upload_thumbnail_to_oss(filename, video_file_path)
         finally:
             os.remove(video_file_path)
             logger.debug(f"Deleted temporary file: {video_file_path}")
 
+        if not self.video_dao.check_url_exists(video_oss_url):
+            embedding = embed_fn("")
+            self.video_dao.insert_url(video_oss_url, embedding)
 
-# uploadVideoService = UploadVideoService()
+        return video_oss_url

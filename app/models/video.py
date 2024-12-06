@@ -22,9 +22,9 @@ class Video:
         schema.add_field(field_name="m_id", datatype=DataType.VARCHAR, is_primary=True, max_length=256, description="唯一ID")
         schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=512, description="视频详情embedding")
         schema.add_field(field_name="path", datatype=DataType.VARCHAR, max_length=256, description="视频地址")
-        schema.add_field(field_name="thumbnail_path", datatype=DataType.VARCHAR, max_length=256, description="视频缩略图地址")
-        schema.add_field(field_name="summary_txt", datatype=DataType.VARCHAR, max_length=3072, description="视频详情")
-        schema.add_field(field_name="tags", datatype=DataType.ARRAY, element_type=DataType.VARCHAR, max_capacity=10, max_length=256, description="视频标签")
+        schema.add_field(field_name="thumbnail_path", datatype=DataType.VARCHAR, max_length=256, description="视频缩略图地址", nullable=True)
+        schema.add_field(field_name="summary_txt", datatype=DataType.VARCHAR, max_length=3072, description="视频详情", nullable=True)
+        schema.add_field(field_name="tags", datatype=DataType.ARRAY, element_type=DataType.VARCHAR, max_capacity=10, max_length=256, description="视频标签", nullable=True)
 
         return schema
 
