@@ -100,18 +100,36 @@ class VideoDAO:
                 output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
                 consistency_level="Strong"  # 一致性级别，Strong表示强一致性
             )
+
+            new_result_list = []
+            if result[0] is not None:
+                for idx in range(len(result[0])):
+                    hit = result[0][idx]
+                    entity = hit.get('entity')
+                    new_result_list.append(entity)
+            return new_result_list
+
+
         else:
             result = self.milvus_client.query(
-                self.collection_name, 
-                filter="", 
+                self.collection_name,
+                filter="",
                 offset=offset,  # 添加offset参数
                 limit=limit,  # 添加limit参数
                 output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags']
             )
+            return result
 
-        # total_count = None
-        # if return_total_count:
-        #     total_count = self.milvus_client.get_entity_num(self.collection_name)
+            # result = self.milvus_client.search(
+            #     collection_name=self.collection_name,  # 指定搜索的集合名称
+            #     filter="",
+            #     # anns_field=None,  # 指定用于搜索的字段，这里是embedding字段
+            #     # data=[],  # 要搜索的向量数据
+            #     limit=limit,  # 返回的最大结果数
+            #     search_params=search_params,  # 搜索参数
+            #     output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
+            #     consistency_level="Strong"  # 一致性级别，Strong表示强一致性
+            # )
 
-        # return result, total_count
-        return result
+
+        # return result
