@@ -86,7 +86,7 @@ def add_video():
         }
         return jsonify(response), 200
     except Exception as e:
-        logger.error(f"Error in mining video: {e}")
+        logger.error(f"Error in add video: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -107,5 +107,5 @@ def search_video():
         }
         return jsonify(response), 200
     except Exception as e:
-        logger.error(f"Error in mining video: {e}")
+        logger.error(f"Error in search video: {e}")
         return jsonify({"error": str(e)}), 500

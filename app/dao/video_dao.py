@@ -82,7 +82,7 @@ class VideoDAO:
             data=[embedding],  # 要搜索的向量数据
             limit=6,  # 返回的最大结果数
             search_params=search_params,  # 搜索参数
-            output_fields=['m_id', 'path', 'summary_txt', 'tags'],  # 指定返回的字段
+            output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
             consistency_level="Strong"  # 一致性级别，Strong表示强一致性
         )
         return result

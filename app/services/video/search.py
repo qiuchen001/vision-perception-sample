@@ -22,6 +22,7 @@ class SearchVideoService:
                     'm_id': hit['id'],
                     'distance': hit['distance'],
                     'path': entity.get('path'),
+                    'thumbnail_path': entity.get('thumbnail_path'),
                     'summary_txt': entity.get('summary_txt'),
                     'tags': list(tags),  # 将 RepeatedScalarContainer 转换为列表
 
