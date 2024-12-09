@@ -22,6 +22,17 @@ class VideoDAO:
         logger.info(f"Querying all users from collection: {self.collection_name}")
         return self.milvus_client.query(self.collection_name, filter="", limit = 6)
 
+    def search_all_videos(self, page=1, page_size=10):
+        offset = (page - 1) * page_size
+        limit = page_size
+        search_params = {
+            "metric_type": "IP",  # 指定相似度度量类型，IP表示内积（Inner Product）
+            "offset": offset,
+            "limit": limit
+        }
+        logger.info(f"Searching all videos from collection: {self.collection_name} with params: {search_params}")
+        return self.milvus_client.search(self.collection_name, filter="", **search_params)
+
     def insert_video(self, user):
         user_data = {
             "m_id": user.m_id,
@@ -68,22 +79,39 @@ class VideoDAO:
         }
         self.milvus_client.upsert(self.collection_name, [user_data])
 
-    def search_video(self, embedding):
+    def search_video(self, embedding=None, page=1, page_size=6):
+        offset = (page - 1) * page_size
+        limit = page_size
+
         search_params = {
             "metric_type": "IP",  # 指定相似度度量类型，IP表示内积（Inner Product）
-            "offset": 0,  # 搜索结果的偏移量，从第0个结果开始
+            "offset": offset,  # 搜索结果的偏移量，从第0个结果开始
             "ignore_growing": False,  # 是否忽略正在增长的索引，False表示不忽略
             "params": {"nprobe": 16}  # 搜索参数，nprobe表示要探测的聚类数
         }
 
-        result = self.milvus_client.search(
-            collection_name=self.collection_name,  # 指定搜索的集合名称
-            anns_field="embedding",  # 指定用于搜索的字段，这里是embedding字段
-            data=[embedding],  # 要搜索的向量数据
-            limit=6,  # 返回的最大结果数
-            search_params=search_params,  # 搜索参数
-            output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
-            consistency_level="Strong"  # 一致性级别，Strong表示强一致性
-        )
-        return result
+        if embedding is not None:
+            result = self.milvus_client.search(
+                collection_name=self.collection_name,  # 指定搜索的集合名称
+                anns_field="embedding",  # 指定用于搜索的字段，这里是embedding字段
+                data=[embedding],  # 要搜索的向量数据
+                limit=limit,  # 返回的最大结果数
+                search_params=search_params,  # 搜索参数
+                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
+                consistency_level="Strong"  # 一致性级别，Strong表示强一致性
+            )
+        else:
+            result = self.milvus_client.query(
+                self.collection_name, 
+                filter="", 
+                offset=offset,  # 添加offset参数
+                limit=limit,  # 添加limit参数
+                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags']
+            )
 
+        # total_count = None
+        # if return_total_count:
+        #     total_count = self.milvus_client.get_entity_num(self.collection_name)
+
+        # return result, total_count
+        return result

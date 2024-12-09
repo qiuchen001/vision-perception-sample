@@ -31,10 +31,12 @@ class SearchVideoService:
         return video_list
 
 
-    def search(self, txt):
-        embedding = embed_fn(txt)
+    def search(self, txt, page, page_size):
+        embedding = None
+        if txt:
+            embedding = embed_fn(txt)
 
-        search_result =  self.video_dao.search_video(embedding)
+        search_result = self.video_dao.search_video(embedding, page, page_size)
 
         return self.parse_search_result(search_result)
 

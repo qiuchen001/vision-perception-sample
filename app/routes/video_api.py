@@ -90,19 +90,23 @@ def add_video():
         return jsonify({"error": str(e)}), 500
 
 
-@bp.route('search', methods=['POST'])
+@bp.route('search', methods=['GET'])
 def search_video():
-    txt = request.form.get('txt')
+    txt = request.args.get('txt')  # 使用 request.args.get 获取 GET 请求参数
+    page = request.args.get('page', default=1, type=int)  # 获取分页参数，默认第一页
+    page_size = request.args.get('page_size', default=6, type=int)  # 每页显示数量，默认6条
 
     try:
         video_service = SearchVideoService()
-        video_list = video_service.search(txt)
+        video_list = video_service.search(txt, page, page_size)  # 传递分页参数到服务层
 
         response = {
             "msg": "success",
             "code": 0,
             "data": {
-                "list": video_list
+                "list": video_list,
+                "page": page,
+                "page_size": page_size
             }
         }
         return jsonify(response), 200
