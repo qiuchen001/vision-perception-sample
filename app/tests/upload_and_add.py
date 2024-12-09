@@ -1,9 +1,11 @@
 import os
+import time
+
 import requests
 import json
 
 def upload_and_insert_videos():
-    video_dir = "E:\\workspace\\ai-ground\\videos-new"
+    video_dir = r"E:\workspace\ai-ground\videos"
     upload_url = "http://127.0.0.1:30501/vision-analyze/video/upload"
     insert_url = "http://127.0.0.1:30501/vision-analyze/video/add"
     
@@ -14,6 +16,8 @@ def upload_and_insert_videos():
                 upload_response = requests.post(upload_url, files={'video': video_file})
                 upload_data = upload_response.json()
                 print(f"上传结果: {upload_data}")
+
+                time.sleep(1)
                 
                 if upload_response.status_code == 200:
                     insert_data = {
