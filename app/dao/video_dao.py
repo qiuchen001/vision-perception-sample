@@ -45,13 +45,13 @@ class VideoDAO:
         return query_result
 
 
-    def insert_url(self, url, embedding):
+    def insert_url(self, url, embedding, thumbnail_oss_url):
         # 插入URL到数据库
         video_data = {
             "m_id": str(uuid.uuid4()),
             "embedding": embedding,
             "path": url,
-            "thumbnail_path": None,
+            "thumbnail_path": thumbnail_oss_url,
             "summary_txt": None,
             "tags": None
         }

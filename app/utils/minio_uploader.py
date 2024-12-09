@@ -4,6 +4,8 @@ from minio import Minio
 from minio.error import S3Error
 from urllib.parse import urljoin
 import mimetypes
+import ffmpeg
+from ..utils.logger import logger
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -49,6 +51,34 @@ class MinioFileUploader:
 
         url_prefix = urljoin("http://" + os.getenv('OSS_ENDPOINT'), bucket_name)
         return url_prefix + "/" + object_name
+
+    def generate_thumbnail_from_video(self, video_url, thumbnail_path, time_seconds):
+        if not video_url:
+            raise ValueError("视频URL不能为空")
+        (
+            ffmpeg
+            .input(video_url, ss=time_seconds)
+            .output(thumbnail_path, vframes=1)
+            .overwrite_output()
+            .run()
+        )
+
+    def upload_thumbnail_to_oss(self, object_name, file_path):
+        # 创建 MinioFileUploader 实例
+        uploader = MinioFileUploader()
+        return uploader.upload_file(object_name, file_path)
+
+
+    def generate_video_thumbnail_url(self, video_url):
+        start_time = 0
+        thumbnail_file_name = os.path.basename(video_url) + "_t_" + str(start_time) + ".jpg"
+        thumbnail_local_path = os.path.join('/tmp', thumbnail_file_name)
+        self.generate_thumbnail_from_video(video_url, thumbnail_local_path, start_time)
+        thumbnail_oss_url = self.upload_thumbnail_to_oss(thumbnail_file_name, thumbnail_local_path)
+        print(f"thumbnail_oss_url:{thumbnail_oss_url}")
+        os.remove(thumbnail_local_path)
+        logger.debug(f"Deleted temporary file: {thumbnail_local_path}")
+        return thumbnail_oss_url
 
 
 # 示例用法
