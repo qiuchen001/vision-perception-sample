@@ -35,16 +35,17 @@ Client --> SummaryAPI
 Client --> SearchAPI
 
 UploadAPI --> VideoStorage
-AddAPI --> VideoStorage
+UploadAPI --> VectorDB
+
 AddAPI --> VideoMining
 AddAPI --> VideoSummary
 AddAPI --> VectorDB
 
-MiningAPI --> VideoStorage
 MiningAPI --> VideoMining
+MiningAPI --> VectorDB
 
-SummaryAPI --> VideoStorage
 SummaryAPI --> VideoSummary
+SummaryAPI --> VectorDB
 
 SearchAPI --> VectorDB
 
