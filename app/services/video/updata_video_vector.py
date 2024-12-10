@@ -85,36 +85,75 @@ def update_video_vector(data_path, operator: MilvusOperator, N):
     print(f'Finished updating {operator.coll_name} items: {total_count}')
 
 
-def update_image_vector(data_path, operator: MilvusOperator):
-    m_ids, embeddings, paths = [], [], []
+def process_single_image(image_path: str, operator: MilvusOperator, id_start: int = 0) -> None:
+    """处理单张图片并插入向量数据库
+    
+    Args:
+        image_path: 图片文件路径
+        operator: Milvus操作器实例
+        id_start: 起始ID号(默认为0)
+    """
+    try:
+        image = Image.open(image_path).convert('RGB')
+        embedding = clip_embedding.embedding_image(image)
+        
+        data = [[id_start], 
+                [embedding[0].detach().cpu().numpy().tolist()],
+                [image_path]]
+        
+        operator.insert_data(data)
+        print(f'成功插入图片向量: {image_path}')
+    except Exception as e:
+        print(f'处理图片失败 {image_path}: {e}')
 
+def update_image_vector(data_path: str, operator: MilvusOperator) -> None:
+    """处理文件夹中的所有图片
+    
+    Args:
+        data_path: 图片文件夹路径
+        operator: Milvus操作器实例
+    """
+    m_ids, embeddings, paths = [], [], []
     total_count = 0
+    
+    # 检查是否为单个文件
+    if os.path.isfile(data_path):
+        process_single_image(data_path, operator)
+        return
+        
+    # 处理文件夹
     for dir_name in os.listdir(data_path):
         sub_dir = os.path.join(data_path, dir_name)
+        if not os.path.isdir(sub_dir):
+            continue
+            
         for file in os.listdir(sub_dir):
+            try:
+                image_path = os.path.join(sub_dir, file)
+                image = Image.open(image_path).convert('RGB')
+                embedding = clip_embedding.embedding_image(image)
 
-            image = Image.open(os.path.join(sub_dir, file)).convert('RGB')
-            embedding = clip_embedding.embedding_image(image)
+                m_ids.append(total_count)
+                embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                paths.append(image_path)
+                total_count += 1
 
-            m_ids.append(total_count)
-            embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                # 每50个批量插入一次，或者是当前目录的最后一个文件
+                if total_count % 50 == 0:
+                    operator.insert_data([m_ids, embeddings, paths])
+                    print(f'成功批量插入 {operator.coll_name} 条目数: {len(m_ids)}')
+                    m_ids, embeddings, paths = [], [], []
 
-            paths.append(os.path.join(sub_dir, file))
-            total_count += 1
+            except Exception as e:
+                print(f'处理图片失败 {image_path}: {e}')
+                continue
 
-            if total_count % 50 == 0:
-                data = [m_ids, embeddings, paths]
-                operator.insert_data(data)
+    # 确保最后的数据也被插入
+    if len(m_ids) > 0:
+        operator.insert_data([m_ids, embeddings, paths])
+        print(f'成功批量插入最后的 {operator.coll_name} 条目数: {len(m_ids)}')
 
-                print(f'success insert {operator.coll_name} items:{len(m_ids)}')
-                m_ids, embeddings, paths = [], [], []
-
-        if len(m_ids):
-            data = [m_ids, embeddings, paths]
-            operator.insert_data(data)
-            print(f'success insert {operator.coll_name} items:{len(m_ids)}')
-
-    print(f'finish update {operator.coll_name} items: {total_count}')
+    print(f'完成更新 {operator.coll_name} 总条目数: {total_count}')
 
 
 if __name__ == '__main__':
@@ -122,5 +161,10 @@ if __name__ == '__main__':
     # data_dir = r'E:\workspace\work_data\videos'
     # data_dir = r'E:\workspace\ai-ground\dataset\traffic'
     # update_image_vector(data_dir, text_video_vector)
-    update_video_vector(data_dir, text_video_vector, N=120)
+    # update_video_vector(data_dir, text_video_vector, N=120)
+
+    # process_single_image("path/to/image.jpg", text_video_vector)
+
+    # 处理整个文件夹
+    update_image_vector(r"E:\workspace\ai-ground\dataset\traffic", text_video_vector)
 
