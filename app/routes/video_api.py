@@ -96,6 +96,9 @@ def search_video():
     page = request.args.get('page', default=1, type=int)  # 获取分页参数，默认第一页
     page_size = request.args.get('page_size', default=6, type=int)  # 每页显示数量，默认6条
 
+    if txt and not txt.isalnum():
+        return jsonify({"error": "Invalid search text"}), 400
+
     try:
         video_service = SearchVideoService()
         video_list = video_service.search(txt, page, page_size)  # 传递分页参数到服务层

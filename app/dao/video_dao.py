@@ -119,17 +119,3 @@ class VideoDAO:
                 output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags']
             )
             return result
-
-            # result = self.milvus_client.search(
-            #     collection_name=self.collection_name,  # 指定搜索的集合名称
-            #     filter="",
-            #     # anns_field=None,  # 指定用于搜索的字段，这里是embedding字段
-            #     # data=[],  # 要搜索的向量数据
-            #     limit=limit,  # 返回的最大结果数
-            #     search_params=search_params,  # 搜索参数
-            #     output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
-            #     consistency_level="Strong"  # 一致性级别，Strong表示强一致性
-            # )
-
-
-        # return result
