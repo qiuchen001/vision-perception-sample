@@ -106,6 +106,7 @@ def process_single_image(image_path: str, operator: MilvusOperator, id_start: in
     except Exception as e:
         print(f'处理图片失败 {image_path}: {e}')
 
+
 def update_image_vector(data_path: str, operator: MilvusOperator) -> None:
     """处理文件夹中的所有图片
     
