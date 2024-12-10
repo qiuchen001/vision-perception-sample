@@ -44,12 +44,25 @@ pip install -r requirements.txt
 ```
 
 ### 3. 配置环境变量
-在项目根目录下创建 `.env` 文件，并添加以下内容：
+1. 复制环境变量示例文件：
+```bash
+cp .env_sample .env
 ```
-SERVER_HOST=localhost
-DASHSCOPE_API_KEY=your_api_key
-OSS_BUCKET_NAME=your_bucket_name
+
+2. 编辑 `.env` 文件，填写必要的环境变量：
+```ini
+# 服务器配置
+SERVER_HOST=localhost        # 服务器主机地址
+SERVER_PORT=30501           # 服务器端口
+
+# API密钥
+DASHSCOPE_API_KEY=your_api_key    # DashScope API密钥
+
+# MinIO配置
+OSS_BUCKET_NAME=your_bucket_name   # MinIO存储桶名称
 ```
+
+注意：请将示例值替换为实际的配置值。
 
 ### 4. 启动应用
 ```bash
