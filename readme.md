@@ -38,12 +38,22 @@
 - OpenAI
 - Milvus
 
-### 2. 安装依赖
+### 2. 下载模型
+项目需要以下模型文件，请下载并放置在对应目录：
+```
++ models/                      # 模型文件目录
++ ├── embedding/              # 向量嵌入模型
++ │   ├── cn-clip/           # 中文CLIP模型
++ │   └── bge-small-zh-1.5/  # BGE中文向量模型
++ ```
++ 注意：模型文件较大，不包含在代码仓库中，请单独下载。
+
+### 3. 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. 配置环境变量
+### 4. 配置环境变量
 1. 复制环境变量示例文件：
 ```bash
 cp .env_sample .env
@@ -64,7 +74,7 @@ OSS_BUCKET_NAME=your_bucket_name   # MinIO存储桶名称
 
 注意：请将示例值替换为实际的配置值。
 
-### 4. 启动应用
+### 5. 启动应用
 ```bash
 python run.py
 ```
