@@ -3,3 +3,5 @@
 __pycache__/
 app.log
 .vscode
+models/embedding/cn-clip/
+models/embedding/bge-small-zh-v1.5
