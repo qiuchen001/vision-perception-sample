@@ -123,7 +123,7 @@ def process_single_video(video_path: str, operator: MilvusOperator, N: int, id_s
     """处理单个视频文件并插入向量数据库
     
     Args:
-        video_path: 视频文件路径
+        video_path: 视频文件路径或URL
         operator: Milvus操作器实例
         N: 帧间隔
         id_start: 起始ID号(默认为0)
@@ -132,7 +132,31 @@ def process_single_video(video_path: str, operator: MilvusOperator, N: int, id_s
     total_count = id_start
     
     try:
-        video_frames, fps = extract_frames(video_path, N)
+        # 判断是否为URL
+        if video_path.startswith(('http://', 'https://')):
+            capture = cv2.VideoCapture(video_path)
+            if not capture.isOpened():
+                raise Exception("无法打开在线视频流")
+        else:
+            if not os.path.exists(video_path):
+                raise Exception("本地视频文件不存在")
+            capture = cv2.VideoCapture(video_path)
+            
+        fps = capture.get(cv2.CAP_PROP_FPS)
+        current_frame = 0
+        video_frames = []
+        
+        while capture.isOpened():
+            ret, frame = capture.read()
+            if not ret:
+                break
+            video_frames.append(Image.fromarray(frame[:, :, ::-1]))
+            current_frame += N
+            capture.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+            
+        capture.release()
+        
+        # 后续处理保持不变
         for frame_idx, frame in enumerate(video_frames):
             frame_embedding = clip_embedding.embedding_image(frame)
             
@@ -164,7 +188,7 @@ def update_video_vector(data_path: str, operator: MilvusOperator, N: int) -> Non
     
     Args:
         data_path: 视频文件夹路径
-        operator: Milvus操作器实例
+        operator: Milvus操��器实例
         N: 帧间隔
     """
     # 检查是否为单个文件
@@ -199,8 +223,9 @@ if __name__ == '__main__':
 
 
     # 处理单个视频
-    # process_single_video("path/to/video.mp4", text_video_vector, N=30)
+    # process_single_video(r"E:\workspace\work_data\videos\120266-720504932_small.mp4", text_video_vector, N=120)
+    process_single_video("http://10.66.12.37:30946/perception-mining/b7ec1001240181ceb5ec3e448c7f9b78.mp4", text_video_vector, N=120)
 
     # 处理整个文件夹
-    update_video_vector(r"E:\workspace\work_data\videos", text_video_vector, N=120)
+    # update_video_vector(r"E:\workspace\work_data\videos", text_video_vector, N=120)
 
