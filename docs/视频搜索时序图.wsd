@@ -1,0 +1,22 @@
+@startuml search-sequence
+!theme plain
+actor Client
+participant "搜索接口" as SearchAPI
+participant "Milvus数据库" as Milvus
+
+Client -> SearchAPI: GET /search (txt, page, page_size)
+activate SearchAPI
+
+SearchAPI -> SearchAPI: 验证搜索参数
+
+SearchAPI -> Milvus: 执行向量搜索
+activate Milvus
+Milvus --> SearchAPI: 返回搜索结果
+deactivate Milvus
+
+SearchAPI -> SearchAPI: 格式化结果
+
+SearchAPI --> Client: 返回搜索结果
+deactivate SearchAPI
+
+@enduml
