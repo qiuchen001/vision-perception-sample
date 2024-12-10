@@ -47,44 +47,6 @@ def encode_frames(video_frames, model, preprocess, device, batch_size=256):
     return video_features
 
 
-def update_video_vector(data_path, operator: MilvusOperator, N):
-    m_ids, embeddings, paths, at_seconds = [], [], [], []
-
-    total_count = 0
-    for file in os.listdir(data_path):
-        video_path = os.path.join(data_path, file)
-        print(f"Processing video: {video_path}")
-
-        try:
-            video_frames, fps = extract_frames(video_path, N)
-            for frame_idx, frame in enumerate(video_frames):
-                frame_embedding = clip_embedding.embedding_image(frame)
-
-                m_ids.append(total_count)
-                embeddings.append(frame_embedding[0].detach().cpu().numpy().tolist())
-                paths.append(video_path)
-                # Calculate the timestamp in seconds for each frame
-                timestamp = int((frame_idx * N) / fps)
-                at_seconds.append(np.int32(timestamp))
-                total_count += 1
-
-                if total_count % 50 == 0:
-                    data = [m_ids, embeddings, paths, at_seconds]
-                    operator.insert_data(data)
-                    print(f'Successfully inserted {operator.coll_name} items: {len(m_ids)}')
-                    m_ids, embeddings, paths, at_seconds = [], [], [], []
-
-        except Exception as e:
-            print(f"Error processing video {video_path}: {e}")
-
-    if len(m_ids):
-        data = [m_ids, embeddings, paths, at_seconds]
-        operator.insert_data(data)
-        print(f'Successfully inserted {operator.coll_name} items: {len(m_ids)}')
-
-    print(f'Finished updating {operator.coll_name} items: {total_count}')
-
-
 def process_single_image(image_path: str, operator: MilvusOperator, id_start: int = 0) -> None:
     """处理单张图片并插入向量数据库
     
@@ -157,6 +119,72 @@ def update_image_vector(data_path: str, operator: MilvusOperator) -> None:
     print(f'完成更新 {operator.coll_name} 总条目数: {total_count}')
 
 
+def process_single_video(video_path: str, operator: MilvusOperator, N: int, id_start: int = 0) -> None:
+    """处理单个视频文件并插入向量数据库
+    
+    Args:
+        video_path: 视频文件路径
+        operator: Milvus操作器实例
+        N: 帧间隔
+        id_start: 起始ID号(默认为0)
+    """
+    m_ids, embeddings, paths, at_seconds = [], [], [], []
+    total_count = id_start
+    
+    try:
+        video_frames, fps = extract_frames(video_path, N)
+        for frame_idx, frame in enumerate(video_frames):
+            frame_embedding = clip_embedding.embedding_image(frame)
+            
+            m_ids.append(total_count)
+            embeddings.append(frame_embedding[0].detach().cpu().numpy().tolist())
+            paths.append(video_path)
+            timestamp = int((frame_idx * N) / fps)
+            at_seconds.append(np.int32(timestamp))
+            total_count += 1
+            
+            if len(m_ids) >= 50:
+                data = [m_ids, embeddings, paths, at_seconds]
+                operator.insert_data(data)
+                print(f'成功插入 {operator.coll_name} 条目数: {len(m_ids)}')
+                m_ids, embeddings, paths, at_seconds = [], [], [], []
+                
+        # 处理剩余数据
+        if len(m_ids):
+            data = [m_ids, embeddings, paths, at_seconds]
+            operator.insert_data(data)
+            print(f'成功插入 {operator.coll_name} 条目数: {len(m_ids)}')
+            
+    except Exception as e:
+        print(f'处理视频失败 {video_path}: {e}')
+
+
+def update_video_vector(data_path: str, operator: MilvusOperator, N: int) -> None:
+    """处理文件夹中的所有视频
+    
+    Args:
+        data_path: 视频文件夹路径
+        operator: Milvus操作器实例
+        N: 帧间隔
+    """
+    # 检查是否为单个文件
+    if os.path.isfile(data_path):
+        process_single_video(data_path, operator, N)
+        return
+        
+    total_count = 0
+    for file in os.listdir(data_path):
+        video_path = os.path.join(data_path, file)
+        if not os.path.isfile(video_path):
+            continue
+            
+        print(f"处理视频: {video_path}")
+        process_single_video(video_path, operator, N, total_count)
+        total_count += 1
+
+    print(f'完成更新 {operator.coll_name} 总视频数: {total_count}')
+
+
 if __name__ == '__main__':
     data_dir = r'E:\workspace\ai-ground\dataset\videos'
     # data_dir = r'E:\workspace\work_data\videos'
@@ -167,5 +195,12 @@ if __name__ == '__main__':
     # process_single_image("path/to/image.jpg", text_video_vector)
 
     # 处理整个文件夹
-    update_image_vector(r"E:\workspace\ai-ground\dataset\traffic", text_video_vector)
+    # update_image_vector(r"E:\workspace\ai-ground\dataset\traffic", text_video_vector)
+
+
+    # 处理单个视频
+    # process_single_video("path/to/video.mp4", text_video_vector, N=30)
+
+    # 处理整个文件夹
+    update_video_vector(r"E:\workspace\work_data\videos", text_video_vector, N=120)
 
