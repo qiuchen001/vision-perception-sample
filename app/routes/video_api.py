@@ -1,118 +1,98 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from ..services.video.upload import UploadVideoService
 from ..services.video.mining import MiningVideoService
 from ..services.video.summary import SummaryVideoService
 from ..services.video.add import AddVideoService
 from ..services.video.search import SearchVideoService
-from ..utils.logger import logger
-from app.dao.video_dao import VideoDAO
-
+from ..utils.response import api_handler, api_response, error_response
 
 bp = Blueprint('video', __name__)
 
 @bp.route('upload', methods=['POST'])
+@api_handler
 def upload_video():
     if 'video' not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+        raise ValueError("No video file provided")
 
     video_file = request.files['video']
+    
+    if not video_file.filename.lower().endswith(('.mp4', '.avi', '.mov')):
+        raise ValueError("Invalid file type")
 
     video_service = UploadVideoService()
     video_oss_url = video_service.upload(video_file)
 
-    response = {
-        "msg": "success",
-        "code": 0,
-        "data": {
-            "file_name": video_oss_url,
-            "video_url": video_oss_url,
-        }
-    }
-
-    return jsonify(response), 200
-
+    return api_response({
+        "file_name": video_oss_url,
+        "video_url": video_oss_url,
+    })
 
 @bp.route('mining', methods=['POST'])
+@api_handler
 def mining_video():
     video_url = request.form.get('file_name')
-    try:
-        video_service = MiningVideoService()
-        mining_result_new = video_service.mining(video_url)
+    if not video_url:
+        raise ValueError("Missing file_name parameter")
 
-        response = {
-            "msg": "success",
-            "code": 0,
-            "data": mining_result_new
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in mining video: {e}")
-        return jsonify({"error": str(e)}), 500
+    video_service = MiningVideoService()
+    mining_result_new = video_service.mining(video_url)
 
+    return api_response(mining_result_new)
 
 @bp.route('summary', methods=['POST'])
+@api_handler
 def summary_video():
     video_url = request.form.get('file_name')
-    try:
-        video_service = SummaryVideoService()
-        mining_content_json = video_service.summary(video_url)
+    if not video_url:
+        raise ValueError("Missing file_name parameter")
 
-        response = {
-            "msg": "success",
-            "code": 0,
-            "data": mining_content_json
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in summary video: {e}")
-        return jsonify({"error": str(e)}), 500
+    video_service = SummaryVideoService()
+    mining_content_json = video_service.summary(video_url)
 
+    return api_response(mining_content_json)
 
 @bp.route('add', methods=['POST'])
+@api_handler
 def add_video():
     video_url = request.form.get('video_url')
-    action_type = request.form.get('action_type') # 1. 挖掘 2. 提取摘要 3. 挖掘及提取摘要
+    action_type = request.form.get('action_type')
+
+    if not video_url:
+        raise ValueError("Missing video_url parameter")
+    if not action_type:
+        raise ValueError("Missing action_type parameter")
 
     try:
-        video_service = AddVideoService()
-        m_id = video_service.add(video_url, int(action_type))
+        action_type = int(action_type)
+        if action_type not in [1, 2, 3]:
+            raise ValueError("Invalid action_type value. Must be 1, 2, or 3")
+    except ValueError:
+        raise ValueError("action_type must be an integer")
 
-        response = {
-            "msg": "success",
-            "code": 0,
-            "data": {
-                "m_id": m_id
-            }
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in add video: {e}")
-        return jsonify({"error": str(e)}), 500
+    video_service = AddVideoService()
+    m_id = video_service.add(video_url, action_type)
 
+    return api_response({"m_id": m_id})
 
 @bp.route('search', methods=['GET'])
+@api_handler
 def search_video():
-    txt = request.args.get('txt')  # 使用 request.args.get 获取 GET 请求参数
-    page = request.args.get('page', default=1, type=int)  # 获取分页参数，默认第一页
-    page_size = request.args.get('page_size', default=6, type=int)  # 每页显示数量，默认6条
+    txt = request.args.get('txt')
+    page = request.args.get('page', default=1, type=int)
+    page_size = request.args.get('page_size', default=6, type=int)
 
     if txt and not txt.isalnum():
-        return jsonify({"error": "Invalid search text"}), 400
+        raise ValueError("Invalid search text")
+    if page < 1:
+        raise ValueError("Page number must be greater than 0")
+    if page_size < 1:
+        raise ValueError("Page size must be greater than 0")
 
-    try:
-        video_service = SearchVideoService()
-        video_list = video_service.search(txt, page, page_size)  # 传递分页参数到服务层
+    video_service = SearchVideoService()
+    video_list = video_service.search(txt, page, page_size)
 
-        response = {
-            "msg": "success",
-            "code": 0,
-            "data": {
-                "list": video_list,
-                "page": page,
-                "page_size": page_size
-            }
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in search video: {e}")
-        return jsonify({"error": str(e)}), 500
+    return api_response({
+        "list": video_list,
+        "page": page,
+        "page_size": page_size
+    })
