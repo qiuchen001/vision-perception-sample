@@ -5,7 +5,7 @@ from typing import List
 
 
 class VideoProcessor:
-    def extract_key_frames(self, video_url: str, min_frames: int = 4, max_frames: int = 80) -> List[str]:
+    def extract_key_frames(self, video_url: str, min_frames: int = 4, max_frames: int = 768) -> List[str]:
         """提取视频关键帧
         Args:
             video_url: 视频URL
