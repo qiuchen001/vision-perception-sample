@@ -1,9 +1,53 @@
 from typing import List, Tuple, Union
 from PIL import Image
 import os
+import requests
+from io import BytesIO
+import re
 
 from app.utils.clip_embeding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator
+
+
+def _is_valid_url(url: str) -> bool:
+    """
+    检查是否为有效的URL。
+
+    Args:
+        url: 要检查的URL字符串
+
+    Returns:
+        bool: 是否为有效URL
+    """
+    url_pattern = re.compile(
+        r'^https?://'  # http:// 或 https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # 域名
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # IP地址
+        r'(?::\d+)?'  # 可选端口
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return bool(url_pattern.match(url))
+
+
+def _load_image_from_url(url: str) -> Image.Image:
+    """
+    从URL加载图片。
+
+    Args:
+        url: 图片URL
+
+    Returns:
+        Image.Image: PIL图片对象
+
+    Raises:
+        Exception: 当图片下载或处理失败时
+    """
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content)).convert('RGB')
+    except Exception as e:
+        raise Exception(f"从URL加载图片失败: {str(e)}")
 
 
 def _process_search_results(results) -> Tuple[List[str], List[int]]:
@@ -27,12 +71,16 @@ def _process_search_results(results) -> Tuple[List[str], List[int]]:
     return video_paths, at_seconds
 
 
-def video_search(query: Union[str, Image.Image, str]) -> Tuple[List[str], List[int]]:
+def video_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
     """
     通过文本或图片搜索视频。
 
     Args:
-        query: 可以是文本字符串、PIL.Image 对象或图片路径
+        query: 可以是:
+            - 文本字符串
+            - PIL.Image 对象
+            - 本地图片路径
+            - 在线图片URL
 
     Returns:
         Tuple[List[str], List[int]]: 返回视频路径列表和对应的时间戳列表
@@ -44,12 +92,19 @@ def video_search(query: Union[str, Image.Image, str]) -> Tuple[List[str], List[i
     try:
         # 根据输入类型生成向量
         if isinstance(query, str):
-            if os.path.isfile(query):  # 如果是图片路径
+            if _is_valid_url(query):  # 检查是否为URL
+                try:
+                    image = _load_image_from_url(query)
+                    input_embedding = clip_embedding.embedding_image(image)
+                except Exception as e:
+                    print(f"处理在线图片失败: {str(e)}")
+                    return [], []
+            elif os.path.isfile(query):  # 本地图片路径
                 try:
                     image = Image.open(query).convert('RGB')
                     input_embedding = clip_embedding.embedding_image(image)
                 except Exception as e:
-                    print(f"读取图片失败: {str(e)}")
+                    print(f"读取本地图片失败: {str(e)}")
                     return [], []
             else:  # 文本查询
                 input_embedding = clip_embedding.embedding_text(query)
@@ -84,22 +139,25 @@ def video_search(query: Union[str, Image.Image, str]) -> Tuple[List[str], List[i
         return [], []
 
 
-def image_to_video(image_path: str) -> Tuple[List[str], List[int]]:
+def image_to_video(image_source: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
     """
-    通过图片搜索视频（便捷方法）。
+    通过图片搜索视频。
 
     Args:
-        image_path: 图片文件路径
+        image_source: 可以是:
+            - 本地图片路径
+            - 在线图片URL
+            - PIL.Image 对象
 
     Returns:
         Tuple[List[str], List[int]]: 返回视频路径列表和对应的时间戳列表
     """
-    return video_search(image_path)
+    return video_search(image_source)
 
 
 def text_to_video(text: str) -> Tuple[List[str], List[int]]:
     """
-    通过文本搜索视频（便捷方法）。
+    通过文本搜索视频。
 
     Args:
         text: 搜索文本
@@ -118,11 +176,22 @@ if __name__ == "__main__":
     print("视频路径:", video_paths)
     print("时间戳:", at_seconds)
 
-    # 图片搜索示例
-    print("\n=== 图片搜索测试 ===")
-    image_path = r"E:\workspace\ai-ground\dataset\traffic\CAM_BACK\1537295813887.jpg"  # 替换为实际的测试图片路径
-    if os.path.exists(image_path):
-        video_paths, at_seconds = image_to_video(image_path)
-        print("图片搜索结果:")
+    # 本地图片搜索示例
+    print("\n=== 本地图片搜索测试 ===")
+    local_image_path = r"E:\workspace\ai-ground\dataset\traffic\CAM_BACK\1537295813887.jpg"
+    if os.path.exists(local_image_path):
+        video_paths, at_seconds = image_to_video(local_image_path)
+        print("本地图片搜索结果:")
         print("视频路径:", video_paths)
         print("时间戳:", at_seconds)
+
+    # 在线图片搜索示例
+    print("\n=== 在线图片搜索测试 ===")
+    online_image_url = "http://10.66.12.37:30946/perception-mining/b7ec1001240181ceb5ec3e448c7f9b78.mp4_t_0.jpg"  # 替换为实际的测试图片URL
+    try:
+        video_paths, at_seconds = image_to_video(online_image_url)
+        print("在线图片搜索结果:")
+        print("视频路径:", video_paths)
+        print("时间戳:", at_seconds)
+    except Exception as e:
+        print(f"在线图片搜索失败: {e}")
