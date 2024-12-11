@@ -133,7 +133,7 @@ class MilvusOperator:
 
             results = collection.search(
                 data=[embedding],
-                anns_field="embedding",  # 注意：这里修正了字段名
+                anns_field="embedding",
                 param=search_params,
                 limit=limit,
                 expr=expr,
@@ -143,29 +143,43 @@ class MilvusOperator:
 
             return self._format_search_results(results)
         except Exception as e:
-            raise Exception(f"搜索数据失败: {str(e)}")
+            print(f"搜索数据失败: {str(e)}")  # 添加错误日志
+            return []  # 发生错误时返回空列表
         finally:
-            collection.release()
+            try:
+                collection.release()
+            except Exception:
+                pass  # 忽略释放时的错误
 
     def _format_search_results(self, results) -> List[Dict[str, Any]]:
-        """格式化搜索结果"""
+        """
+        格式化搜索结果。
+        
+        Args:
+            results: Milvus 搜索返回的结果对象
+            
+        Returns:
+            List[Dict[str, Any]]: 格式化后的结果列表
+        """
         entity_list = []
         if results and results[0]:
-            for idx, hit in enumerate(results[0]):
-                entity = {
-                    'm_id': results[0].ids[idx],
-                    'distance': results[0].distances[idx]
-                }
-                # 添加所有可用的输出字段
-                entity.update({
-                    field: hit.entity.get(field)
-                    for field in hit.entity
-                })
-                entity_list.append(entity)
+            for hits in results:  # 遍历每个查询的结果
+                for hit in hits:  # 遍历每个匹配项
+                    entity = {
+                        'm_id': hit.id,  # 使用 hit.id 替代 ids[idx]
+                        'distance': hit.distance,  # 使用 hit.distance 替代 distances[idx]
+                    }
+                    
+                    # 添加实体的其他字段
+                    if hasattr(hit, 'entity'):
+                        entity['video_id'] = hit.entity.get('video_id')
+                        entity['at_seconds'] = hit.entity.get('at_seconds')
+                    
+                    entity_list.append(entity)
 
             # 按距离升序排序
             entity_list.sort(key=lambda x: x['distance'])
-
+        
         return entity_list
 
     def query_by_ids(self, ids: List[str], output_fields: Optional[List[str]] = None) -> List[Dict[str, Any]]:

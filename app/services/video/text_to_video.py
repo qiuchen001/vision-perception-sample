@@ -1,5 +1,5 @@
 from app.utils.clip_embeding import clip_embedding
-from app.utils.milvus_operator import text_video_vector
+from app.utils.milvus_operator import video_frame_operator
 
 
 def video_search(text):
@@ -15,7 +15,7 @@ def video_search(text):
 
     print("input_embedding:", input_embedding)
 
-    results = text_video_vector.search_data(input_embedding)
+    results = video_frame_operator.search_data(input_embedding)
 
     print("results:", results)
 
