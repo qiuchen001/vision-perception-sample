@@ -1,8 +1,11 @@
+import os
+from typing import Optional
 import torch
 # import cn_clip.clip as clip
 import cn_clip.clip as clip
 from cn_clip.clip import load_from_name, available_models
 from PIL import Image
+from config import Config
 
 
 # # 从视频中提取帧，并跳过指定数量的帧。
@@ -57,8 +60,8 @@ class ClipEmbeding:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def __init__(self):
-        self.model, self.processor = model, preprocess = load_from_name(
-            name=r"E:\playground\ai\projects\vision-perception\models\embedding\cn-clip\clip_cn_vit-l-14-336.pt",
+        self.model, self.processor = load_from_name(
+            name=Config.CN_CLIP_MODEL_PATH,
             device=self.device,
             vision_model_name="ViT-L-14-336",
             text_model_name="RoBERTa-wwm-ext-base-chinese",

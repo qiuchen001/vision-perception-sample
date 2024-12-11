@@ -12,4 +12,13 @@ class Config:
     VIDEO_FRAME_INTERVAL = int(os.getenv('VIDEO_FRAME_INTERVAL', '30'))  # 视频抽帧间隔
     VIDEO_FRAME_BATCH_SIZE = int(os.getenv('VIDEO_FRAME_BATCH_SIZE', '50'))  # 批处理大小
 
+    # 模型配置
+    MODEL_BASE_DIR = os.getenv('MODEL_BASE_DIR', 'models')
+    CN_CLIP_MODEL_PATH = os.path.join(
+        MODEL_BASE_DIR,
+        'embedding',
+        'cn-clip',
+        'clip_cn_vit-l-14-336.pt'
+    )
+
     # ... 其他配置 ...
