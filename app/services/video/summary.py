@@ -1,9 +1,8 @@
-from app.dao.video_dao import VideoDAO
-from app.utils.common import *
+from app.utils.video_processor import VideoProcessor
+from app.prompt.summary import system_instruction, prompt
 import os
 import json
 from openai import OpenAI
-from app.prompt import summary
 
 
 def parse_json_string(json_str):
@@ -14,34 +13,39 @@ def parse_json_string(json_str):
 
 
 class SummaryVideoService:
-
+    def __init__(self):
+        self.video_processor = VideoProcessor()
+        
     def summary(self, video_url):
-        base64_images = extract_frames_and_convert_to_base64(video_url)
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "video",
-                        "video": base64_images
-                    },
-                    {
-                        "type": "text",
-                        "text": summary.system_instruction + "\n" + summary.prompt
-                    }
-                ]
-            }
-        ]
-
-        model_name = "qwen-vl-max-latest"
-
+        """生成视频摘要"""
+        # 1. 提取关键帧
+        frame_urls = self.video_processor.extract_key_frames(video_url)
+        
+        # 2. 调用通义千问VL模型
         client = OpenAI(
             api_key=os.getenv("DASHSCOPE_API_KEY"),
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
         )
 
+        messages = [{
+            "role": "system",
+            "content": system_instruction
+        }, {
+            "role": "user",
+            "content": [
+                {
+                    "type": "video",
+                    "video": frame_urls
+                },
+                {
+                    "type": "text",
+                    "text": prompt
+                }
+            ]
+        }]
+
         response = client.chat.completions.create(
-            model=model_name,
+            model=os.getenv("QWEN_VISION_MODEL_NAME"),
             messages=messages,
             response_format={"type": "json_object"}
         )
