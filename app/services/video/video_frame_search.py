@@ -71,9 +71,9 @@ def _process_search_results(results) -> Tuple[List[str], List[int]]:
     return video_paths, at_seconds
 
 
-def video_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
+def video_frame_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
     """
-    通过文本或图片搜索视频。
+    通过文本或图片搜索视频帧。
 
     Args:
         query: 可以是:
@@ -139,9 +139,9 @@ def video_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
         return [], []
 
 
-def image_to_video(image_source: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
+def image_to_frame(image_source: Union[str, Image.Image]) -> Tuple[List[str], List[int]]:
     """
-    通过图片搜索视频。
+    通过图片搜索视频帧。
 
     Args:
         image_source: 可以是:
@@ -152,12 +152,12 @@ def image_to_video(image_source: Union[str, Image.Image]) -> Tuple[List[str], Li
     Returns:
         Tuple[List[str], List[int]]: 返回视频路径列表和对应的时间戳列表
     """
-    return video_search(image_source)
+    return video_frame_search(image_source)
 
 
-def text_to_video(text: str) -> Tuple[List[str], List[int]]:
+def text_to_frame(text: str) -> Tuple[List[str], List[int]]:
     """
-    通过文本搜索视频。
+    通过文本搜索视频帧。
 
     Args:
         text: 搜索文本
@@ -165,13 +165,13 @@ def text_to_video(text: str) -> Tuple[List[str], List[int]]:
     Returns:
         Tuple[List[str], List[int]]: 返回视频路径列表和对应的时间戳列表
     """
-    return video_search(text)
+    return video_frame_search(text)
 
 
 if __name__ == "__main__":
     # 文本搜索示例
     print("\n=== 文本搜索测试 ===")
-    video_paths, at_seconds = text_to_video("高速路")
+    video_paths, at_seconds = text_to_frame("高速路")
     print("文本搜索结果:")
     print("视频路径:", video_paths)
     print("时间戳:", at_seconds)
@@ -180,18 +180,18 @@ if __name__ == "__main__":
     print("\n=== 本地图片搜索测试 ===")
     local_image_path = r"E:\workspace\ai-ground\dataset\traffic\CAM_BACK\1537295813887.jpg"
     if os.path.exists(local_image_path):
-        video_paths, at_seconds = image_to_video(local_image_path)
+        video_paths, at_seconds = image_to_frame(local_image_path)
         print("本地图片搜索结果:")
         print("视频路径:", video_paths)
         print("时间戳:", at_seconds)
 
     # 在线图片搜索示例
     print("\n=== 在线图片搜索测试 ===")
-    online_image_url = "http://10.66.12.37:30946/perception-mining/b7ec1001240181ceb5ec3e448c7f9b78.mp4_t_0.jpg"  # 替换为实际的测试图片URL
+    online_image_url = "http://10.66.12.37:30946/perception-mining/b7ec1001240181ceb5ec3e448c7f9b78.mp4_t_0.jpg"
     try:
-        video_paths, at_seconds = image_to_video(online_image_url)
+        video_paths, at_seconds = image_to_frame(online_image_url)
         print("在线图片搜索结果:")
         print("视频路径:", video_paths)
         print("时间戳:", at_seconds)
     except Exception as e:
-        print(f"在线图片搜索失败: {e}")
+        print(f"在线图片搜索失败: {e}") 
