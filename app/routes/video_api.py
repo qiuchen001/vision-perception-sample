@@ -82,22 +82,58 @@ def add_video():
 
     return api_response({"m_id": m_id})
 
-@bp.route('search', methods=['GET'])
+@bp.route('search', methods=['GET', 'POST'])
 @api_handler
 def search_video():
-    txt = request.args.get('txt')
+    """
+    搜索视频。支持文本搜索和图片搜索。
+    
+    GET 方法：文本搜索
+    参数：
+        txt: 搜索文本
+        page: 页码（默认1）
+        page_size: 每页数量（默认6）
+        
+    POST 方法：图片搜索
+    参数：
+        image: 图片文件
+        image_url: 图片URL（与image二选一）
+        page: 页码（默认1）
+        page_size: 每页数量（默认6）
+    """
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('page_size', default=6, type=int)
 
-    if txt and not txt.isalnum():
-        raise ValueError("Invalid search text")
     if page < 1:
         raise ValueError("Page number must be greater than 0")
     if page_size < 1:
         raise ValueError("Page size must be greater than 0")
 
     video_service = SearchVideoService()
-    video_list = video_service.search(txt, page, page_size)
+
+    if request.method == 'GET':
+        # 文本搜索
+        txt = request.args.get('txt')
+        if not txt:
+            raise ValueError("Search text is required")
+        video_list = video_service.search_by_text(txt, page, page_size)
+    else:
+        # 图片搜索
+        image_file = request.files.get('image')
+        image_url = request.form.get('image_url')
+        
+        if not image_file and not image_url:
+            raise ValueError("Either image file or image URL is required")
+            
+        if image_file and image_url:
+            raise ValueError("Cannot provide both image file and image URL")
+            
+        video_list = video_service.search_by_image(
+            image_file=image_file,
+            image_url=image_url,
+            page=page,
+            page_size=page_size
+        )
 
     return api_response({
         "list": video_list,
