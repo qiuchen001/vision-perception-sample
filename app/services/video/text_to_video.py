@@ -1,11 +1,5 @@
-import torch
-import argparse
-
-from PIL import Image
-# from jina_clip_embeding import clip_embeding
 from app.utils.clip_embeding import clip_embedding
 from app.utils.milvus_operator import text_video_vector
-from datetime import timedelta
 
 
 def video_search(text):
