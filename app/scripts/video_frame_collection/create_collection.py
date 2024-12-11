@@ -14,7 +14,7 @@ def create_schema():
     collection_schema = milvus_client.create_schema(
         auto_id=False,
         enable_dynamic_fields=True,
-        description="video frame embedding search"  # 更新描述
+        description="video frame embedding search"
     )
 
     collection_schema.add_field(
