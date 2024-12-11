@@ -5,7 +5,7 @@ import requests
 import json
 
 def upload_and_insert_videos():
-    video_dir = r"E:\workspace\ai-ground\videos"
+    video_dir = r"E:\workspace\ai-ground\videos-new"
     upload_url = "http://127.0.0.1:30501/vision-analyze/video/upload"
     insert_url = "http://127.0.0.1:30501/vision-analyze/video/add"
     

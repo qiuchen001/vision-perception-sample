@@ -74,6 +74,7 @@ class VideoDAO:
             "embedding": video['embedding'],
             "path": video['path'],
             "thumbnail_path": video['thumbnail_path'],
+            "title": video['title'],
             "summary_txt": video['summary_txt'],
             "tags": video['tags']
         }
