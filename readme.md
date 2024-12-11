@@ -41,12 +41,18 @@
 ### 2. 下载模型
 项目需要以下模型文件，请下载并放置在对应目录：
 ```
-+ models/                      # 模型文件目录
-+ ├── embedding/              # 向量嵌入模型
-+ │   ├── cn-clip/           # 中文CLIP模型
-+ │   └── bge-small-zh-1.5/  # BGE中文向量模型
-+ ```
-+ 注意：模型文件较大，不包含在代码仓库中，请单独下载。
+models/                      # 模型文件目录
+├── embedding/              # 向量嵌入模型
+│   ├── cn-clip/           # 中文CLIP模型
+│   └── bge-small-zh-1.5/  # BGE中文向量模型
+```
+注意：模型文件较大，不包含在代码仓库中，请从以下地址下载：
+
+- BGE 中文向量模型：[BAAI/bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5)
+  - 下载后放置在 `models/embedding/bge-small-zh-1.5/` 目录
+- 中文 CLIP 模型：[OFA-Sys/chinese-clip-vit-large-patch14-336px](https://huggingface.co/OFA-Sys/chinese-clip-vit-large-patch14-336px)
+  - 下载模型文件 `clip_cn_vit-l-14-336.pt`
+  - 下载后放置在 `models/embedding/cn-clip/` 目录
 
 ### 3. 安装依赖
 ```bash
