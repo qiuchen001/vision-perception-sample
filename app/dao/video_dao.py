@@ -5,6 +5,7 @@ import uuid
 from flask import current_app
 import os
 
+
 class VideoDAO:
     def __init__(self):
         SERVER_HOST = current_app.config['SERVER_HOST']
@@ -20,7 +21,7 @@ class VideoDAO:
 
     def get_all_videos(self):
         logger.info(f"Querying all users from collection: {self.collection_name}")
-        return self.milvus_client.query(self.collection_name, filter="", limit = 6)
+        return self.milvus_client.query(self.collection_name, filter="", limit=6)
 
     def search_all_videos(self, page=1, page_size=10):
         offset = (page - 1) * page_size
@@ -50,19 +51,18 @@ class VideoDAO:
         query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
         return len(query_result) > 0
 
-
     def get_by_path(self, url):
         query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
         return query_result
 
-
-    def insert_url(self, url, embedding, thumbnail_oss_url):
+    def init_video(self, url, embedding, thumbnail_oss_url, title):
         # 插入URL到数据库
         video_data = {
             "m_id": str(uuid.uuid4()),
             "embedding": embedding,
             "path": url,
             "thumbnail_path": thumbnail_oss_url,
+            "title": title,
             "summary_txt": None,
             "tags": None
         }

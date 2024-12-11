@@ -67,6 +67,14 @@ def create_schema():
     )
     
     collection_schema.add_field(
+        field_name="title",
+        datatype=DataType.VARCHAR,
+        max_length=256,
+        description="视频标题",
+        nullable=True
+    )
+    
+    collection_schema.add_field(
         field_name="summary_txt",
         datatype=DataType.VARCHAR,
         max_length=3072,

@@ -61,19 +61,19 @@ class UploadVideoService:
                 self._process_frames(video_oss_url, frames)
                 result["processed_frames"] = len(frames)
 
+            # 生成并更新标题
+            title = self.generate_title(video_file_path)
+
             # 添加视频信息到数据库
             if not self.video_dao.check_url_exists(video_oss_url):
                 embedding = embed_fn("")
-                self.video_dao.insert_url(video_oss_url, embedding, thumbnail_oss_url)
-
+                self.video_dao.init_video(video_oss_url, embedding, thumbnail_oss_url, title)
+            
             result.update({
                 "file_name": video_oss_url,
                 "video_url": video_oss_url,
+                "title": title
             })
-
-            # 生成视频标题
-            title = self.generate_title(video_file_path)
-            result["title"] = title
 
         except Exception as e:
             logger.error(f"处理视频失败: {str(e)}")
