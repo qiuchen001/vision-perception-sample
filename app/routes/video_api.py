@@ -8,6 +8,7 @@ from ..utils.response import api_handler, api_response, error_response
 
 bp = Blueprint('video', __name__)
 
+
 @bp.route('upload', methods=['POST'])
 @api_handler
 def upload_video():
@@ -26,7 +27,7 @@ def upload_video():
         raise ValueError("No video file provided")
 
     video_file = request.files['video']
-    
+
     if not video_file.filename.lower().endswith(('.mp4', '.avi', '.mov')):
         raise ValueError("Invalid file type")
 
@@ -34,6 +35,7 @@ def upload_video():
     result = video_service.upload(video_file)
 
     return api_response(result)
+
 
 @bp.route('mining', methods=['POST'])
 @api_handler
@@ -47,6 +49,7 @@ def mining_video():
 
     return api_response(mining_result_new)
 
+
 @bp.route('summary', methods=['POST'])
 @api_handler
 def summary_video():
@@ -58,6 +61,7 @@ def summary_video():
     mining_content_json = video_service.summary(video_url)
 
     return api_response(mining_content_json)
+
 
 @bp.route('add', methods=['POST'])
 @api_handler
@@ -82,27 +86,28 @@ def add_video():
 
     return api_response({"m_id": m_id})
 
-@bp.route('search', methods=['GET', 'POST'])
+
+@bp.route('search', methods=['POST'])
 @api_handler
 def search_video():
     """
     搜索视频。支持文本搜索和图片搜索。
     
-    GET 方法：文本搜索
+    请求方式：POST
+    
     参数：
-        txt: 搜索文本
+        txt: 搜索文本（可选）
+        image: 图片文件（可选）
+        image_url: 图片URL（可选）
         page: 页码（默认1）
         page_size: 每页数量（默认6）
         
-    POST 方法：图片搜索
-    参数：
-        image: 图片文件
-        image_url: 图片URL（与image二选一）
-        page: 页码（默认1）
-        page_size: 每页数量（默认6）
+    注意：
+        - txt、image、image_url 三者必须提供其中之一
+        - image 和 image_url 不能同时提供
     """
-    page = request.args.get('page', default=1, type=int)
-    page_size = request.args.get('page_size', default=6, type=int)
+    page = request.form.get('page', default=1, type=int)
+    page_size = request.form.get('page_size', default=6, type=int)
 
     if page < 1:
         raise ValueError("Page number must be greater than 0")
@@ -111,23 +116,22 @@ def search_video():
 
     video_service = SearchVideoService()
 
-    if request.method == 'GET':
-        # 文本搜索
-        txt = request.args.get('txt')
-        if not txt:
-            raise ValueError("Search text is required")
+    # 获取搜索参数
+    txt = request.form.get('txt')
+    image_file = request.files.get('image')
+    image_url = request.form.get('image_url')
+
+    # 参数验证
+    if not any([txt, image_file, image_url]):
+        raise ValueError("Must provide either txt, image file or image URL")
+
+    if sum(bool(x) for x in [txt, image_file, image_url]) > 1:
+        raise ValueError("Can only provide one of: txt, image file, image URL")
+
+    # 根据提供的参数类型执行相应的搜索
+    if txt:
         video_list = video_service.search_by_text(txt, page, page_size)
     else:
-        # 图片搜索
-        image_file = request.files.get('image')
-        image_url = request.form.get('image_url')
-        
-        if not image_file and not image_url:
-            raise ValueError("Either image file or image URL is required")
-            
-        if image_file and image_url:
-            raise ValueError("Cannot provide both image file and image URL")
-            
         video_list = video_service.search_by_image(
             image_file=image_file,
             image_url=image_url,
