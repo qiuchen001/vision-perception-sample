@@ -14,6 +14,10 @@ from app.utils.clip_embeding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator
 from werkzeug.utils import secure_filename
 from config import Config
+from app.utils.video_processor import VideoProcessor
+from app.prompt.title import system_instruction, prompt
+import json
+from openai import OpenAI
 
 
 class UploadVideoService:
@@ -22,6 +26,7 @@ class UploadVideoService:
         self.minioFileUploader = MinioFileUploader()
         self.frame_interval = Config.VIDEO_FRAME_INTERVAL
         self.batch_size = Config.VIDEO_FRAME_BATCH_SIZE
+        self.video_processor = VideoProcessor()
 
     def upload(self, video_file) -> Dict[str, Any]:
         """
@@ -65,6 +70,10 @@ class UploadVideoService:
                 "file_name": video_oss_url,
                 "video_url": video_oss_url,
             })
+
+            # 生成视频标题
+            title = self.generate_title(video_file_path)
+            result["title"] = title
 
         except Exception as e:
             logger.error(f"处理视频失败: {str(e)}")
@@ -151,3 +160,43 @@ class UploadVideoService:
         if m_ids:
             video_frame_operator.insert_data([m_ids, embeddings, paths, at_seconds])
             logger.info(f"批量插入剩余 {len(m_ids)} 帧，时间戳范围: {at_seconds[0]}-{at_seconds[-1]}秒")
+
+    def generate_title(self, video_path):
+        """生成视频标题"""
+        # 1. 提取关键帧
+        frame_urls = self.video_processor.extract_key_frames(video_path)
+        
+        # 2. 调用通义千问VL模型
+        client = OpenAI(
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
+
+        messages = [{
+            "role": "system",
+            "content": system_instruction
+        }, {
+            "role": "user",
+            "content": [
+                {
+                    "type": "video",
+                    "video": frame_urls
+                },
+                {
+                    "type": "text",
+                    "text": prompt
+                }
+            ]
+        }]
+
+        response = client.chat.completions.create(
+            model=os.getenv("QWEN_VISION_MODEL_NAME"),
+            messages=messages,
+            response_format={"type": "json_object"}
+        )
+        
+        response_json = response.model_dump_json()
+        js = json.loads(response_json)
+        content = js['choices'][0]['message']['content']
+        title_json = json.loads(content)
+        return title_json["title"]
