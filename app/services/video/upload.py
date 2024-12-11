@@ -1,31 +1,135 @@
+import cv2
+import numpy as np
+from PIL import Image
+import uuid
+import os
+from typing import Dict, Any, List, Tuple
+
 from app.dao.video_dao import VideoDAO
 from app.utils.logger import logger
 from app.utils.common import *
 from app.utils.embedding import *
 from app.utils.minio_uploader import MinioFileUploader
+from app.utils.clip_embeding import clip_embedding
+from app.utils.milvus_operator import video_frame_operator
 from werkzeug.utils import secure_filename
-import os
+from config import Config
 
 
 class UploadVideoService:
     def __init__(self):
         self.video_dao = VideoDAO()
         self.minioFileUploader = MinioFileUploader()
+        self.frame_interval = Config.VIDEO_FRAME_INTERVAL
+        self.batch_size = Config.VIDEO_FRAME_BATCH_SIZE
 
-    def upload(self, video_file):
+    def upload(self, video_file) -> Dict[str, Any]:
+        """
+        上传视频并处理。
+        
+        Args:
+            video_file: 上传的视频文件
+            
+        Returns:
+            Dict[str, Any]: 包含视频URL和处理结果的字典
+        """
+        # 保存临时文件
         filename = secure_filename(video_file.filename)
         video_file_path = os.path.join('/tmp', filename)
         video_file.save(video_file_path)
 
+        result = {
+            "frame_count": 0,
+            "processed_frames": 0
+        }
+
         try:
+            # 上传视频到OSS
             video_oss_url = upload_thumbnail_to_oss(filename, video_file_path)
             thumbnail_oss_url = self.minioFileUploader.generate_video_thumbnail_url(video_oss_url)
+            
+            # 处理视频帧
+            frames = self._extract_frames(video_file_path)
+            result["frame_count"] = len(frames)
+            
+            if frames:
+                self._process_frames(video_oss_url, frames)
+                result["processed_frames"] = len(frames)
+
+            # 添加视频信息到数据库
+            if not self.video_dao.check_url_exists(video_oss_url):
+                embedding = embed_fn("")
+                self.video_dao.insert_url(video_oss_url, embedding, thumbnail_oss_url)
+
+            result.update({
+                "file_name": video_oss_url,
+                "video_url": video_oss_url,
+            })
+
+        except Exception as e:
+            logger.error(f"处理视频失败: {str(e)}")
+            raise
         finally:
+            # 清理临时文件
             os.remove(video_file_path)
             logger.debug(f"Deleted temporary file: {video_file_path}")
 
-        if not self.video_dao.check_url_exists(video_oss_url):
-            embedding = embed_fn("")
-            self.video_dao.insert_url(video_oss_url, embedding, thumbnail_oss_url)
+        return result
 
-        return video_oss_url
+    def _extract_frames(self, video_path: str) -> List[Image.Image]:
+        """提取视频帧"""
+        frames = []
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            raise ValueError(f"无法打开视频: {video_path}")
+
+        try:
+            frame_count = 0
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                    
+                if frame_count % self.frame_interval == 0:
+                    # 转换为PIL Image
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_image = Image.fromarray(frame_rgb)
+                    frames.append(pil_image)
+                    
+                frame_count += 1
+        finally:
+            cap.release()
+            
+        return frames
+
+    def _process_frames(self, video_url: str, frames: List[Image.Image]) -> None:
+        """处理视频帧并存入向量数据库"""
+        m_ids, embeddings, paths, at_seconds = [], [], [], []
+        
+        for idx, frame in enumerate(frames):
+            try:
+                # 生成帧的向量表示
+                embedding = clip_embedding.embedding_image(frame)
+                if embedding is None:
+                    continue
+                    
+                # 准备数据
+                m_ids.append(str(uuid.uuid4()))
+                embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                paths.append(video_url)
+                timestamp = idx * self.frame_interval
+                at_seconds.append(np.int32(timestamp))
+                
+                # 使用配置的批处理大小
+                if len(m_ids) >= self.batch_size:
+                    video_frame_operator.insert_data([m_ids, embeddings, paths, at_seconds])
+                    m_ids, embeddings, paths, at_seconds = [], [], [], []
+                    
+            except Exception as e:
+                logger.error(f"处理帧 {idx} 失败: {str(e)}")
+                continue
+                
+        # 处理剩余的帧
+        if m_ids:
+            video_frame_operator.insert_data([m_ids, embeddings, paths, at_seconds])

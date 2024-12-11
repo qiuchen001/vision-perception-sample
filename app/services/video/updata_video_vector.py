@@ -8,8 +8,9 @@ import uuid
 
 from app.utils.clip_embeding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator, MilvusOperator
+from config import Config
 
-N = 30
+N = Config.VIDEO_FRAME_INTERVAL
 
 
 # 从视频中提取帧，并跳过指定数量的帧。

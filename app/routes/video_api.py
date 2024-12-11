@@ -11,6 +11,17 @@ bp = Blueprint('video', __name__)
 @bp.route('upload', methods=['POST'])
 @api_handler
 def upload_video():
+    """
+    上传视频文件并处理。
+    
+    视频文件会被上传到对象存储，同时提取视频帧并存入向量数据库。
+    处理过程包括：
+    1. 上传视频到OSS
+    2. 生成缩略图
+    3. 提取视频帧
+    4. 生成帧向量并存入Milvus
+    5. 添加视频信息到数据库
+    """
     if 'video' not in request.files:
         raise ValueError("No video file provided")
 
@@ -20,12 +31,9 @@ def upload_video():
         raise ValueError("Invalid file type")
 
     video_service = UploadVideoService()
-    video_oss_url = video_service.upload(video_file)
+    result = video_service.upload(video_file)
 
-    return api_response({
-        "file_name": video_oss_url,
-        "video_url": video_oss_url,
-    })
+    return api_response(result)
 
 @bp.route('mining', methods=['POST'])
 @api_handler
