@@ -97,7 +97,7 @@ class VideoDAO:
                 data=[embedding],  # 要搜索的向量数据
                 limit=limit,  # 返回的最大结果数
                 search_params=search_params,  # 搜索参数
-                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags'],  # 指定返回的字段
+                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title'],  # 指定返回的字段
                 consistency_level="Strong"  # 一致性级别，Strong表示强一致性
             )
 
@@ -109,13 +109,12 @@ class VideoDAO:
                     new_result_list.append(entity)
             return new_result_list
 
-
         else:
             result = self.milvus_client.query(
                 self.collection_name,
                 filter="",
                 offset=offset,  # 添加offset参数
                 limit=limit,  # 添加limit参数
-                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags']
+                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title']
             )
             return result
