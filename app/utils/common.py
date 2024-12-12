@@ -98,13 +98,37 @@ def get_uuid():
     return str.lower(unique_id)
 
 
-def generate_thumbnail_from_video(video_url, thumbnail_path, time_seconds):
+def generate_thumbnail_from_video(video_url: str, thumbnail_path: str, time_seconds: float) -> None:
+    """
+    从视频生成指定时间点的缩略图
+    
+    Args:
+        video_url: 视频URL
+        thumbnail_path: 缩略图保存路径 
+        time_seconds: 指定的时间点(秒)
+        
+    Raises:
+        ValueError: 当视频URL为空时
+        RuntimeError: 当视频元数据获取失败时
+    """
     if not video_url:
         raise ValueError("视频URL不能为空")
-    (
-        ffmpeg
-        .input(video_url, ss=time_seconds)
-        .output(thumbnail_path, vframes=1)
-        .overwrite_output()
-        .run()
-    )
+        
+    try:
+        # 获取视频元数据
+        probe = ffmpeg.probe(video_url)
+        # 获取视频时长(秒)
+        duration = float(probe['streams'][0]['duration'])
+        
+        # 确保time_seconds在有效范围内
+        time_seconds = max(0, min(time_seconds, duration))
+        
+        (
+            ffmpeg
+            .input(video_url, ss=time_seconds)
+            .output(thumbnail_path, vframes=1)
+            .overwrite_output()
+            .run()
+        )
+    except ffmpeg.Error as e:
+        raise RuntimeError(f"获取视频元数据失败: {str(e)}")
