@@ -72,6 +72,7 @@ class VideoDAO:
     def upsert_video(self, video):
         user_data = {
             "m_id": video['m_id'],
+            "embedding": video['embedding'],
             "summary_embedding": video['summary_embedding'],
             "path": video['path'],
             "thumbnail_path": video['thumbnail_path'],
