@@ -108,7 +108,7 @@ def generate_thumbnail_from_video(video_url: str, thumbnail_path: str, time_seco
         time_seconds: 指定的时间点(秒)
         
     Raises:
-        ValueError: 当视频URL为空时
+        ValueError: 当视频URL为空或无效时
         RuntimeError: 当视频元数据获取失败时
     """
     if not video_url:
@@ -117,18 +117,21 @@ def generate_thumbnail_from_video(video_url: str, thumbnail_path: str, time_seco
     try:
         # 获取视频元数据
         probe = ffmpeg.probe(video_url)
-        # 获取视频时长(秒)
-        duration = float(probe['streams'][0]['duration'])
+        # 获取视频时长(秒),转换为整数
+        duration = int(float(probe['streams'][0]['duration']))
         
-        # 确保time_seconds在有效范围内
-        time_seconds = max(0, min(time_seconds, duration))
+        # 确保time_seconds在有效范围内,转换为整数
+        time_seconds = max(0, min(int(time_seconds), duration))
         
         (
             ffmpeg
             .input(video_url, ss=time_seconds)
             .output(thumbnail_path, vframes=1)
             .overwrite_output()
-            .run()
+            .run(capture_stderr=True)  # 捕获错误输出
         )
     except ffmpeg.Error as e:
-        raise RuntimeError(f"获取视频元数据失败: {str(e)}")
+        error_message = e.stderr.decode() if e.stderr else str(e)
+        raise RuntimeError(f"获取视频元数据失败: {error_message}")
+    except Exception as e:
+        raise RuntimeError(f"处理视频时发生错误: {str(e)}")
