@@ -130,7 +130,7 @@ def search_video():
 
     # 根据提供的参数类型执行相应的搜索
     if txt:
-        video_list = video_service.search_by_text(txt, page, page_size)
+        video_list = video_service.search_by_text(txt, page, page_size, "summary")
     else:
         video_list = video_service.search_by_image(
             image_file=image_file,
