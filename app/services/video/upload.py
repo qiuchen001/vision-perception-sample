@@ -191,7 +191,7 @@ class UploadVideoService:
         }]
 
         response = client.chat.completions.create(
-            model=os.getenv("QWEN_VISION_MODEL_NAME"),
+            model=os.getenv("VISION_MODEL_NAME"),
             messages=messages,
             response_format={"type": "json_object"}
         )

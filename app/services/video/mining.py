@@ -79,7 +79,7 @@ class MiningVideoService:
 
     @staticmethod
     def mining_video_handler(video_url):
-        model_name = os.getenv("QWEN_VISION_MODEL_NAME")
+        model_name = os.getenv("VISION_MODEL_NAME")
 
         client = OpenAI(
             api_key=os.getenv("DASHSCOPE_API_KEY"),
