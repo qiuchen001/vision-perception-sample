@@ -120,15 +120,23 @@ def generate_thumbnail_from_video(video_url: str, thumbnail_path: str, time_seco
         # 获取视频时长(秒),转换为整数
         duration = int(float(probe['streams'][0]['duration']))
         
-        # 确保time_seconds在有效范围内,转换为整数
-        time_seconds = max(0, min(int(time_seconds), duration))
+        # 确保time_seconds在有效范围内[0, duration-1],转换为整数
+        time_seconds = max(0, min(int(time_seconds), duration - 1))
         
         (
             ffmpeg
             .input(video_url, ss=time_seconds)
-            .output(thumbnail_path, vframes=1)
+            .output(
+                thumbnail_path,
+                vframes=1,
+                format='image2',
+                vcodec='mjpeg',
+                acodec='none',
+                strict='unofficial',
+                vf='scale=1280:-1'  # 保持宽高比
+            )
             .overwrite_output()
-            .run(capture_stderr=True)  # 捕获错误输出
+            .run(capture_stderr=True)
         )
     except ffmpeg.Error as e:
         error_message = e.stderr.decode() if e.stderr else str(e)
