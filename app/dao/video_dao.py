@@ -55,11 +55,12 @@ class VideoDAO:
         query_result = self.milvus_client.query(self.collection_name, filter=f"path == '{url}'", limit=1)
         return query_result
 
-    def init_video(self, url, embedding, thumbnail_oss_url, title):
+    def init_video(self, url, embedding, summary_embedding, thumbnail_oss_url, title):
         # 插入URL到数据库
         video_data = {
             "m_id": str(uuid.uuid4()),
             "embedding": embedding,
+            "summary_embedding": summary_embedding,
             "path": url,
             "thumbnail_path": thumbnail_oss_url,
             "title": title,
@@ -71,7 +72,7 @@ class VideoDAO:
     def upsert_video(self, video):
         user_data = {
             "m_id": video['m_id'],
-            "embedding": video['embedding'],
+            "summary_embedding": video['summary_embedding'],
             "path": video['path'],
             "thumbnail_path": video['thumbnail_path'],
             "title": video['title'],
@@ -80,7 +81,7 @@ class VideoDAO:
         }
         self.milvus_client.upsert(self.collection_name, [user_data])
 
-    def search_video(self, embedding=None, page=1, page_size=6):
+    def search_video(self, summary_embedding=None, page=1, page_size=6):
         offset = (page - 1) * page_size
         limit = page_size
 
@@ -91,11 +92,11 @@ class VideoDAO:
             "params": {"nprobe": 16}  # 搜索参数，nprobe表示要探测的聚类数
         }
 
-        if embedding is not None:
+        if summary_embedding is not None:
             result = self.milvus_client.search(
                 collection_name=self.collection_name,  # 指定搜索的集合名称
-                anns_field="embedding",  # 指定用于搜索的字段，这里是embedding字段
-                data=[embedding],  # 要搜索的向量数据
+                anns_field="summary_embedding",  # 指定用于搜索的字段，这里是embedding字段
+                data=[summary_embedding],  # 要搜索的向量数据
                 limit=limit,  # 返回的最大结果数
                 search_params=search_params,  # 搜索参数
                 output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title'],  # 指定返回的字段

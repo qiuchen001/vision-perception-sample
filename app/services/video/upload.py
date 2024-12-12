@@ -67,7 +67,8 @@ class UploadVideoService:
             # 添加视频信息到数据库
             if not self.video_dao.check_url_exists(video_oss_url):
                 embedding = embed_fn("")
-                self.video_dao.init_video(video_oss_url, embedding, thumbnail_oss_url, title)
+                summary_embedding = embed_fn("")
+                self.video_dao.init_video(video_oss_url, embedding, summary_embedding, thumbnail_oss_url, title)
             
             result.update({
                 "file_name": video_oss_url,

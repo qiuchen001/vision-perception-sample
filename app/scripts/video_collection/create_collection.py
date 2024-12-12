@@ -52,6 +52,13 @@ def create_schema():
     )
     
     collection_schema.add_field(
+        field_name="summary_embedding",
+        datatype=DataType.FLOAT_VECTOR,
+        dim=512,
+        description="视频摘要的向量表示"
+    )
+    
+    collection_schema.add_field(
         field_name="path",
         datatype=DataType.VARCHAR,
         max_length=256,
@@ -97,7 +104,7 @@ def create_schema():
 
 def create_collection(collection_schema):
     """
-    使用指定的schema创建视频集合。
+    使用指定���schema创建视频集合。
 
     Args:
         collection_schema (CollectionSchema): 集合的schema定义

@@ -53,7 +53,7 @@ class AddVideoService:
         summary_result = summary_service.summary(video_url)
         summary_txt = self.parse_summary_result(summary_result)
         video['summary_txt'] = summary_txt
-        video['embedding'] = embed_fn(summary_txt)
+        video['summary_embedding'] = embed_fn(summary_txt)
 
 
 
