@@ -86,21 +86,21 @@ class VideoDAO:
         limit = page_size
 
         search_params = {
-            "metric_type": "IP",  # 指定相似度度量类型，IP表示内积（Inner Product）
-            "offset": offset,  # 搜索结果的偏移量，从第0个结果开始
-            "ignore_growing": False,  # 是否忽略正在增长的索引，False表示不忽略
-            "params": {"nprobe": 16}  # 搜索参数，nprobe表示要探测的聚类数
+            "metric_type": "IP",
+            "offset": offset,
+            "ignore_growing": False,
+            "params": {"nprobe": 16}
         }
 
         if summary_embedding is not None:
             result = self.milvus_client.search(
-                collection_name=self.collection_name,  # 指定搜索的集合名称
-                anns_field="summary_embedding",  # 指定用于搜索的字段，这里是embedding字段
-                data=[summary_embedding],  # 要搜索的向量数据
-                limit=limit,  # 返回的最大结果数
-                search_params=search_params,  # 搜索参数
-                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title'],  # 指定返回的字段
-                consistency_level="Strong"  # 一致性级别，Strong表示强一致性
+                collection_name=self.collection_name,
+                anns_field="summary_embedding",
+                data=[summary_embedding],
+                limit=limit,
+                search_params=search_params,
+                output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title'],
+                consistency_level="Strong"
             )
 
             new_result_list = []
@@ -108,6 +108,8 @@ class VideoDAO:
                 for idx in range(len(result[0])):
                     hit = result[0][idx]
                     entity = hit.get('entity')
+                    if entity:
+                        entity['timestamp'] = 0
                     new_result_list.append(entity)
             return new_result_list
 
@@ -115,8 +117,10 @@ class VideoDAO:
             result = self.milvus_client.query(
                 self.collection_name,
                 filter="",
-                offset=offset,  # 添加offset参数
-                limit=limit,  # 添加limit参数
+                offset=offset,
+                limit=limit,
                 output_fields=['m_id', 'path', 'thumbnail_path', 'summary_txt', 'tags', 'title']
             )
+            for item in result:
+                item['timestamp'] = 0
             return result

@@ -6,6 +6,7 @@ from io import BytesIO
 
 from app.dao.video_dao import VideoDAO
 from app.services.video.video_frame_search import image_to_frame, text_to_frame
+from app.utils.embedding import embed_fn
 from app.utils.logger import logger
 
 
@@ -13,7 +14,7 @@ class SearchVideoService:
     def __init__(self):
         self.video_dao = VideoDAO()
 
-    def search_by_text(self, txt: str, page: int = 1, page_size: int = 6) -> List[Dict[str, Any]]:
+    def search_by_text(self, txt: str, page: int = 1, page_size: int = 6, search_mode: str = "frame") -> List[Dict[str, Any]]:
         """
         通过文本搜索视频。
 
@@ -21,16 +22,25 @@ class SearchVideoService:
             txt: 搜索文本
             page: 页码
             page_size: 每页数量
-
+            search_mode: 搜索模式
+                - "frame": 先搜索视频帧,再获取视频信息(默认)
+                - "summary": 直接搜索视频摘要
         Returns:
             List[Dict[str, Any]]: 视频列表
         """
         try:
-            # 使用文本搜索视频帧
-            video_paths, timestamps = text_to_frame(txt)
-            
-            # 获取视频详细信息
-            return self._get_video_details(video_paths, timestamps, page, page_size)
+            if search_mode == "frame":
+                # 现有的帧级搜索逻辑
+                video_paths, timestamps = text_to_frame(txt)
+                return self._get_video_details(video_paths, timestamps, page, page_size)
+            else:
+                # 直接搜索视频摘要
+                summary_embedding = embed_fn(txt)  # 使用文本embedding函数
+                return self.video_dao.search_video(
+                    summary_embedding=summary_embedding,
+                    page=page,
+                    page_size=page_size
+                )
             
         except Exception as e:
             logger.error(f"文本搜索失败: {str(e)}")
