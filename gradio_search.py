@@ -60,7 +60,7 @@ def search_videos(
             # 根据搜索类型调用不同的搜索方法
             if search_type == "文本搜索":
                 if not text_query.strip():
-                    return None, None, "请输入搜索文本"
+                    return [], None, "请输入搜索文本"
                 results = search_service.search_by_text(
                     text_query,
                     page=page,
@@ -69,17 +69,28 @@ def search_videos(
                 )
             else:  # 图片搜索
                 if image_file is None and not image_url.strip():
-                    return None, None, "请上传图片或输入图片URL"
-                results = search_service.search_by_image(
-                    image_file=image_file,
-                    image_url=image_url if not image_file else None,
-                    page=page,
-                    page_size=page_size
-                )
+                    return [], None, "请上传图片或输入图片URL"
+                
+                try:
+                    # 如果是PIL Image对象，直接使用
+                    if isinstance(image_file, Image.Image):
+                        print("Using PIL Image directly")  # 调试日志
+                        results = search_service.search_by_image(
+                            image_file=image_file,  # 直接传递PIL Image对象
+                            image_url=image_url if not image_file else None,
+                            page=page,
+                            page_size=page_size
+                        )
+                    else:
+                        print(f"Unexpected image type: {type(image_file)}")  # 调试日志
+                        return [], None, f"不支持的图片格式: {type(image_file)}"
+                except Exception as e:
+                    print(f"Error processing image: {str(e)}")  # 调试日志
+                    return [], None, f"图片处理失败: {str(e)}"
 
             # 格式化输出结果
             if not results:
-                return None, None, "未找到匹配的视频"
+                return [], None, "未找到匹配的视频"
 
             # 准备Gallery数据
             gallery_data = []
@@ -113,7 +124,8 @@ def search_videos(
             return gallery_data, gr.HTML(value=""), "搜索完成"
 
     except Exception as e:
-        return None, None, f"搜索失败: {str(e)}"
+        print(f"Search error: {str(e)}")  # 调试日志
+        return [], None, f"搜索失败: {str(e)}"
 
 
 def on_select(evt: gr.SelectData):
@@ -139,14 +151,14 @@ def update_input_visibility(search_type):
     """更新输入组件的可见性"""
     if search_type == "文本搜索":
         return (
-            gr.update(visible=True),  # 文本输入
-            gr.update(visible=True),  # 搜索模式
+            gr.update(visible=True),   # 文本输入
+            gr.update(visible=True),   # 搜索模式
             gr.update(visible=False),  # 图片上传
             gr.update(visible=False)   # 图片URL
         )
-    else:
+    else:  # 图片搜索
         return (
-            gr.update(visible=False),  # 文本��入
+            gr.update(visible=False),  # 文本输入
             gr.update(visible=False),  # 搜索模式
             gr.update(visible=True),   # 图片上传
             gr.update(visible=True)    # 图片URL
@@ -240,16 +252,18 @@ def create_interface():
                     )
 
                 # 图片搜索相关组件
-                with gr.Row(visible=False) as image_search_row:
+                with gr.Row() as image_search_row:
                     image_file = gr.Image(
                         label="上传图片",
                         type="pil",
-                        container=True
+                        container=True,
+                        visible=False
                     )
                     image_url = gr.Textbox(
                         label="图片URL",
                         placeholder="请输入图片URL",
-                        container=True
+                        container=True,
+                        visible=False
                     )
 
                 with gr.Row():

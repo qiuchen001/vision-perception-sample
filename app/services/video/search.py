@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from werkzeug.datastructures import FileStorage
 from PIL import Image
 import requests
@@ -48,7 +48,7 @@ class SearchVideoService:
 
     def search_by_image(
             self,
-            image_file: Optional[FileStorage] = None,
+            image_file: Optional[Union[FileStorage, Image.Image]] = None,
             image_url: Optional[str] = None,
             page: int = 1,
             page_size: int = 6
@@ -57,7 +57,7 @@ class SearchVideoService:
         通过图片搜索视频。
 
         Args:
-            image_file: 上传的图片文件
+            image_file: 上传的图片文件或PIL Image对象
             image_url: 图片URL
             page: 页码
             page_size: 每页数量
@@ -68,7 +68,10 @@ class SearchVideoService:
         try:
             # 处理图片输入
             if image_file:
-                image = Image.open(image_file).convert('RGB')
+                if isinstance(image_file, Image.Image):
+                    image = image_file  # 直接使用PIL Image对象
+                else:
+                    image = Image.open(image_file).convert('RGB')
             elif image_url:
                 response = requests.get(image_url, timeout=10)
                 response.raise_for_status()
