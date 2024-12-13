@@ -43,6 +43,80 @@ def create_video_player_html(video_url, title):
     """
 
 
+def format_gallery_html(gallery_data):
+    """创建自定义网格布局的HTML"""
+    html = """
+    <style>
+    .custom-gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 20px;
+    }
+    .video-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .video-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .video-thumbnail {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+    }
+    .video-info {
+        padding: 15px;
+    }
+    .video-title {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    .video-tags {
+        color: #666;
+        font-size: 14px;
+    }
+    </style>
+    <div class="custom-gallery">
+    """
+    
+    # 添加视频卡片
+    for idx, (thumbnail_url, title, tags) in enumerate(gallery_data):
+        html += f"""
+        <div class="video-card" onclick="handleVideoSelect({idx})">
+            <img class="video-thumbnail" src="{thumbnail_url}" alt="{title}">
+            <div class="video-info">
+                <div class="video-title">{title}</div>
+                <div class="video-tags">{tags}</div>
+            </div>
+        </div>
+        """
+    
+    html += """
+    </div>
+    <script>
+    function handleVideoSelect(index) {
+        const indexInput = document.querySelector('#selected_index input');
+        if (indexInput) {
+            indexInput.value = index;
+            indexInput.dispatchEvent(new Event('change', {bubbles: true}));
+            console.log('Selected video index:', index);
+        } else {
+            console.log('Could not find index input');
+        }
+    }
+    </script>
+    """
+    return html
+
+
 def search_videos(
         search_type,
         text_query="",
@@ -103,17 +177,20 @@ def search_videos(
 
             # 准备Gallery数据
             gallery_data = []
-            video_data = {}  # 存储视频信息
+            video_data = {}
 
             for idx, video in enumerate(results):
-                # 获取视频封面URL
                 thumbnail_url = video.get('thumbnail_path', '')
                 if not thumbnail_url:
-                    # 如果没有封面，可以使用一个默认图片
                     thumbnail_url = "path/to/default/thumbnail.jpg"
 
                 # 准备视频信息
                 video_info, video_url, title = format_video_info(video)
+                
+                # 获取标签
+                tags = video.get('tags', [])
+                tags_text = f"标签：{', '.join(tags)}" if tags else "无标签"
+
                 video_data[str(idx)] = {
                     'url': video_url,
                     'title': title,
@@ -121,20 +198,19 @@ def search_videos(
                 }
 
                 # 添加到Gallery数据
-                gallery_data.append((
-                    thumbnail_url,  # 图片URL
-                    f"{title}"  # 显示标题
-                ))
+                gallery_data.append((thumbnail_url, title, tags_text))
 
-            # 将video_data存储为全局变量
+            # 存储视频数据
             global _video_data
             _video_data = video_data
 
-            return gallery_data, gr.HTML(value=""), "搜索完成"
+            # 创建自定义网格HTML
+            gallery_html = format_gallery_html(gallery_data)
+            return gr.HTML(value=gallery_html), gr.HTML(value=""), "搜索完成"
 
     except Exception as e:
-        print(f"Search error: {str(e)}")  # 调试日志
-        return [], None, f"搜索失败: {str(e)}"
+        print(f"Search error: {str(e)}")
+        return gr.HTML(value=""), None, f"搜索失败: {str(e)}"
 
 
 def on_select(evt: gr.SelectData):
@@ -227,112 +303,194 @@ def create_interface():
     .search-button:hover {
         background: #0056b3;
     }
+    /* Gallery式 */
+    .gallery-grid {
+        gap: 1.5rem !important;
+    }
+    
+    .gallery-grid > div {
+        display: flex !important;
+        flex-direction: column !important;
+        border-radius: 8px !important;
+        background: white !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        height: auto !important;  /* 允许高度自适应 */
+        overflow: visible !important;
+    }
+    
+    .gallery-grid > div > img {
+        width: 100% !important;
+        aspect-ratio: 16/9 !important;
+        object-fit: cover !important;
+        border-radius: 8px 8px 0 0 !important;
+        margin-bottom: 0 !important;  /* 移除图片底部边距 */
+    }
+    
+    .gallery-grid > div > .caption {
+        position: relative !important;  /* 改为相对定位 */
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        padding: 1rem !important;
+        border-radius: 0 0 8px 8px !important;
+        border-top: 1px solid #eee !important;
+    }
+    
+    .gallery-grid .title {
+        font-weight: bold !important;
+        font-size: 1rem !important;
+        color: #333 !important;
+        margin-bottom: 0.5rem !important;
+        line-height: 1.4 !important;
+    }
+    
+    .gallery-grid .tags {
+        color: #666 !important;
+        font-size: 0.9rem !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* 自定义网格布局 */
+    .custom-gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .video-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .video-thumbnail {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+    }
+    
+    .video-info {
+        padding: 15px;
+        background: white;
+    }
+    
+    .video-title {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .video-tags {
+        color: #666;
+        font-size: 14px;
+    }
     """
 
     with gr.Blocks(title="视频搜索系统", css=css) as iface:
-        with gr.Column(elem_id="container"):
-            # 搜索控制区域
-            with gr.Column(elem_classes="search-controls"):
-                gr.Markdown("## 搜索条件")
-                with gr.Row():
-                    search_type = gr.Radio(
-                        choices=["文本搜索", "图片搜索"],
-                        label="搜索类型",
-                        value="文本搜索",
-                        container=False
+        gr.Markdown("# 视频搜索系统")
+
+        # 首先创建隐藏的索引输入
+        with gr.Row(visible=False):
+            selected_index = gr.Textbox(
+                value="",
+                elem_id="selected_index",
+                label="Selected Index"
+            )
+
+        # 搜索控制区域
+        with gr.Column(elem_classes="search-controls"):
+            gr.Markdown("## 搜索条件")
+            with gr.Row():
+                search_type = gr.Radio(
+                    choices=["文本搜索", "图片搜索"],
+                    label="搜索类型",
+                    value="文本搜索",
+                    container=False
+                )
+
+            with gr.Row():
+                # 文本搜索相关组件
+                text_query = gr.Textbox(
+                    label="搜索文本",
+                    placeholder="请输入搜索关键词",
+                    lines=2,
+                    visible=True,
+                    container=True
+                )
+                search_mode = gr.Radio(
+                    choices=["frame", "summary"],
+                    label="搜索模式",
+                    value="frame",
+                    visible=True,
+                    info="frame: 搜索视频帧 | summary: 搜索视频摘要",
+                    container=True
+                )
+
+            # 图片搜索相关组件
+            with gr.Row() as image_search_row:
+                image_file = gr.Image(
+                    label="上传图片",
+                    type="pil",
+                    container=True,
+                    visible=False
+                )
+                image_url = gr.Textbox(
+                    label="图片URL",
+                    placeholder="请输入图片URL",
+                    container=True,
+                    visible=False
+                )
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    page = gr.Number(
+                        label="页码",
+                        value=1,
+                        minimum=1,
+                        step=1
+                    )
+                with gr.Column(scale=1):
+                    page_size = gr.Number(
+                        label="每页数量",
+                        value=6,
+                        minimum=1,
+                        maximum=20,
+                        step=1
                     )
 
-                with gr.Row():
-                    # 文本搜索相关组件
-                    text_query = gr.Textbox(
-                        label="搜索文本",
-                        placeholder="请输入搜索关键词",
-                        lines=2,
-                        visible=True,
-                        container=True
-                    )
-                    search_mode = gr.Radio(
-                        choices=["frame", "summary"],
-                        label="搜索模式",
-                        value="frame",
-                        visible=True,
-                        info="frame: 搜索视频帧 | summary: 搜索视频摘要",
-                        container=True
-                    )
+            with gr.Row():
+                search_button = gr.Button("搜索", elem_classes="search-button")
 
-                # 图片搜索相关组件
-                with gr.Row() as image_search_row:
-                    image_file = gr.Image(
-                        label="上传图片",
-                        type="pil",
-                        container=True,
-                        visible=False
-                    )
-                    image_url = gr.Textbox(
-                        label="图片URL",
-                        placeholder="请输入图片URL",
-                        container=True,
-                        visible=False
-                    )
+        # 搜索结果和视频播放区域
+        with gr.Row(elem_classes="results-container"):
+            # 左侧搜索结果
+            with gr.Column(elem_classes="gallery-area"):
+                gr.Markdown("## 搜索结果")
+                gallery_html = gr.HTML(label="搜索结果")
+                status = gr.Textbox(label="状态", interactive=False)
 
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        page = gr.Number(
-                            label="页码",
-                            value=1,
-                            minimum=1,
-                            step=1
-                        )
-                    with gr.Column(scale=1):
-                        page_size = gr.Number(
-                            label="每页数量",
-                            value=6,
-                            minimum=1,
-                            maximum=20,
-                            step=1
-                        )
-
-                with gr.Row():
-                    search_button = gr.Button("搜索", elem_classes="search-button")
-
-            # 搜索结果和视频播放区域
-            with gr.Row(elem_classes="results-container"):
-                # 左侧搜索结果
-                with gr.Column(elem_classes="gallery-area"):
-                    gr.Markdown("## 搜索结果")
-                    gallery = gr.Gallery(
-                        label="",
-                        show_label=False,
-                        elem_id="gallery",
-                        columns=[2],
-                        rows=[3],
-                        height="auto",
-                        allow_preview=False,
-                        object_fit="cover"
-                    )
-
-                    status = gr.Textbox(
-                        label="状态",
-                        interactive=False,
-                        elem_classes="status-box"
-                    )
-
-                # 右侧视频播放区域
-                with gr.Column(elem_classes="video-area"):
-                    gr.Markdown("## 视频播放")
-                    video_area = gr.HTML(
-                        value="""
-                        <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
-                             background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-                            <div style="text-align: center;">
-                                <svg style="width:64px;height:64px;margin-bottom:1.5rem;color:#6c757d" viewBox="0 0 24 24">
-                                    <path fill="currentColor" d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
-                                </svg>
-                                <div style="color:#6c757d;font-size:1.1rem;">请选择要播放的视频</div>
-                            </div>
+            # 右侧视频播放区域
+            with gr.Column(elem_classes="video-area"):
+                gr.Markdown("## 视频播放")
+                video_area = gr.HTML(
+                    value="""
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
+                         background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                        <div style="text-align: center;">
+                            <svg style="width:64px;height:64px;margin-bottom:1.5rem;color:#6c757d" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
+                            </svg>
+                            <div style="color:#6c757d;font-size:1.1rem;">请选择要播放的视频</div>
                         </div>
-                        """
-                    )
+                    </div>
+                    """
+                )
 
         # 添加图片输入组件的互斥处理
         def clear_other_input(value, is_url):
@@ -343,7 +501,25 @@ def create_interface():
                 return gr.update(), gr.update(value="")
             return gr.update(), gr.update()
 
-        # 绑定事件
+        # 修改事件处理部分
+        def handle_select(evt: gr.SelectData):
+            """处理视频选择事件"""
+            try:
+                global _video_data
+                if evt and hasattr(evt, 'index'):
+                    video_info = _video_data.get(str(evt.index))
+                    if video_info:
+                        html_content = create_video_player_html(
+                            video_info['url'],
+                            video_info['title']
+                        )
+                        return gr.update(value=html_content)
+                return gr.update(value="<p>无法播放视频</p>")
+            except Exception as e:
+                print(f"Error in handle_select: {e}")
+                return gr.update(value=f"<p>播放错��: {str(e)}</p>")
+
+        # 事件绑定
         search_type.change(
             fn=update_input_visibility,
             inputs=[search_type],
@@ -374,12 +550,14 @@ def create_interface():
                 page,
                 page_size
             ],
-            outputs=[gallery, video_area, status]
+            outputs=[gallery_html, video_area, status]
         )
 
-        gallery.select(
-            fn=on_select,
-            outputs=video_area
+        # 使用click事件替代select事件
+        selected_index.change(
+            fn=handle_select,
+            inputs=[selected_index],
+            outputs=[video_area]
         )
 
     return iface
