@@ -84,13 +84,14 @@ def format_gallery_html(gallery_data):
         font-size: 14px;
     }
     </style>
+
     <div class="custom-gallery">
     """
     
-    # 添加视频卡片
+    # 添加视频卡片，不需要onclick事件
     for idx, (thumbnail_url, title, tags) in enumerate(gallery_data):
         html += f"""
-        <div class="video-card" onclick="handleVideoSelect({idx})">
+        <div class="video-card">
             <img class="video-thumbnail" src="{thumbnail_url}" alt="{title}">
             <div class="video-info">
                 <div class="video-title">{title}</div>
@@ -99,21 +100,7 @@ def format_gallery_html(gallery_data):
         </div>
         """
     
-    html += """
-    </div>
-    <script>
-    function handleVideoSelect(index) {
-        const indexInput = document.querySelector('#selected_index input');
-        if (indexInput) {
-            indexInput.value = index;
-            indexInput.dispatchEvent(new Event('change', {bubbles: true}));
-            console.log('Selected video index:', index);
-        } else {
-            console.log('Could not find index input');
-        }
-    }
-    </script>
-    """
+    html += "</div>"
     return html
 
 
@@ -197,20 +184,21 @@ def search_videos(
                     'info': video_info
                 }
 
-                # 添加到Gallery数据
-                gallery_data.append((thumbnail_url, title, tags_text))
+                # 为Gallery组件准备数据
+                gallery_data.append((
+                    thumbnail_url,  # 图片URL
+                    f"{title}\n{tags_text}"  # 标题和标签
+                ))
 
             # 存储视频数据
             global _video_data
             _video_data = video_data
 
-            # 创建自定义网格HTML
-            gallery_html = format_gallery_html(gallery_data)
-            return gr.HTML(value=gallery_html), gr.HTML(value=""), "搜索完成"
+            return gallery_data, gr.update(value=""), "搜索完成"
 
     except Exception as e:
         print(f"Search error: {str(e)}")
-        return gr.HTML(value=""), None, f"搜索失败: {str(e)}"
+        return [], gr.update(value=""), f"搜索失败: {str(e)}"
 
 
 def on_select(evt: gr.SelectData):
@@ -248,6 +236,26 @@ def update_input_visibility(search_type):
             gr.update(visible=True),   # 图片上传
             gr.update(visible=True)    # 图片URL
         )
+
+
+def handle_video_select(index):
+    """处理视频选择"""
+    try:
+        print(f"Handling video select for index: {index}")  # 调试日志
+        global _video_data
+        if index is not None:
+            video_info = _video_data.get(str(index))
+            if video_info:
+                print(f"Found video info: {video_info}")  # 调试日志
+                html_content = create_video_player_html(
+                    video_info['url'],
+                    video_info['title']
+                )
+                return html_content  # 直接返回HTML字符串
+        return "<p>无法播放视频</p>"
+    except Exception as e:
+        print(f"Error in handle_video_select: {e}")  # 调试日志
+        return f"<p>播放错误: {str(e)}</p>"
 
 
 # 创建Gradio界面
@@ -323,7 +331,7 @@ def create_interface():
         aspect-ratio: 16/9 !important;
         object-fit: cover !important;
         border-radius: 8px 8px 0 0 !important;
-        margin-bottom: 0 !important;  /* 移除图片底部边距 */
+        margin-bottom: 0 !important;  /* 除图片底部边距 */
     }
     
     .gallery-grid > div > .caption {
@@ -395,13 +403,8 @@ def create_interface():
     with gr.Blocks(title="视频搜索系统", css=css) as iface:
         gr.Markdown("# 视频搜索系统")
 
-        # 首先创建隐藏的索引输入
-        with gr.Row(visible=False):
-            selected_index = gr.Textbox(
-                value="",
-                elem_id="selected_index",
-                label="Selected Index"
-            )
+        # 首先创建隐藏的索引输入框
+        selected_index = gr.State(value=None)  # 改用 gr.State 来存储选中的索引
 
         # 搜索控制区域
         with gr.Column(elem_classes="search-controls"):
@@ -472,7 +475,15 @@ def create_interface():
             # 左侧搜索结果
             with gr.Column(elem_classes="gallery-area"):
                 gr.Markdown("## 搜索结果")
-                gallery_html = gr.HTML(label="搜索结果")
+                gallery = gr.Gallery(
+                    label="搜索结果",
+                    show_label=False,
+                    elem_id="gallery",
+                    columns=[2],
+                    rows=[3],
+                    height="auto",
+                    allow_preview=False
+                )
                 status = gr.Textbox(label="状态", interactive=False)
 
             # 右侧视频播放区域
@@ -500,24 +511,6 @@ def create_interface():
             elif not is_url and value is not None:  # 图片上传有值时
                 return gr.update(), gr.update(value="")
             return gr.update(), gr.update()
-
-        # 修改事件处理部分
-        def handle_select(evt: gr.SelectData):
-            """处理视频选择事件"""
-            try:
-                global _video_data
-                if evt and hasattr(evt, 'index'):
-                    video_info = _video_data.get(str(evt.index))
-                    if video_info:
-                        html_content = create_video_player_html(
-                            video_info['url'],
-                            video_info['title']
-                        )
-                        return gr.update(value=html_content)
-                return gr.update(value="<p>无法播放视频</p>")
-            except Exception as e:
-                print(f"Error in handle_select: {e}")
-                return gr.update(value=f"<p>播放错��: {str(e)}</p>")
 
         # 事件绑定
         search_type.change(
@@ -550,14 +543,30 @@ def create_interface():
                 page,
                 page_size
             ],
-            outputs=[gallery_html, video_area, status]
+            outputs=[gallery, video_area, status]
         )
 
-        # 使用click事件替代select事件
-        selected_index.change(
-            fn=handle_select,
-            inputs=[selected_index],
-            outputs=[video_area]
+        # 绑定 Gallery 的选择事件
+        def on_video_select(evt: gr.SelectData):
+            """处理视频选择事件"""
+            try:
+                global _video_data
+                video_info = _video_data.get(str(evt.index))
+                if video_info:
+                    html_content = create_video_player_html(
+                        video_info['url'],
+                        video_info['title']
+                    )
+                    return gr.update(value=html_content)
+                return gr.update(value="<p>无法播放视频</p>")
+            except Exception as e:
+                print(f"Error in on_video_select: {e}")
+                return gr.update(value=f"<p>播放错误: {str(e)}</p>")
+
+        # 绑定事件
+        gallery.select(
+            fn=on_video_select,
+            outputs=video_area
         )
 
     return iface
