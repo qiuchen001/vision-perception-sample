@@ -146,7 +146,7 @@ def update_input_visibility(search_type):
         )
     else:
         return (
-            gr.update(visible=False),  # 文本输入
+            gr.update(visible=False),  # 文本��入
             gr.update(visible=False),  # 搜索模式
             gr.update(visible=True),   # 图片上传
             gr.update(visible=True)    # 图片URL
@@ -157,22 +157,8 @@ def update_input_visibility(search_type):
 def create_interface():
     css = """
     #container {
-        display: flex;
-        gap: 2rem;
-        padding: 1rem;
         min-height: calc(100vh - 100px);
-    }
-    #search-area {
-        flex: 3;
-        min-width: 0;
-    }
-    #video-area {
-        flex: 2;
-        min-width: 300px;
-        position: sticky;
-        top: 1rem;
-        height: calc(100vh - 120px);
-        overflow-y: auto;
+        padding: 1rem;
     }
     .search-controls {
         background: white;
@@ -181,11 +167,25 @@ def create_interface():
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         margin-bottom: 1.5rem;
     }
-    .gallery-container {
+    .results-container {
+        display: flex;
+        gap: 2rem;
         background: white;
         padding: 1.5rem;
         border-radius: 10px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .gallery-area {
+        flex: 1;
+        min-width: 0;
+    }
+    .video-area {
+        flex: 1;
+        min-width: 300px;
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
     }
     .status-box {
         margin-top: 1rem;
@@ -209,73 +209,73 @@ def create_interface():
     """
 
     with gr.Blocks(title="视频搜索系统", css=css) as iface:
-        with gr.Row(elem_id="container"):
-            # 左侧搜索区域
-            with gr.Column(elem_id="search-area"):
-                # 搜索控制区域
-                with gr.Column(elem_classes="search-controls"):
-                    gr.Markdown("## 搜索条件")
-                    with gr.Row():
-                        search_type = gr.Radio(
-                            choices=["文本搜索", "图片搜索"],
-                            label="搜索类型",
-                            value="文本搜索",
-                            container=False
+        with gr.Column(elem_id="container"):
+            # 搜索控制区域
+            with gr.Column(elem_classes="search-controls"):
+                gr.Markdown("## 搜索条件")
+                with gr.Row():
+                    search_type = gr.Radio(
+                        choices=["文本搜索", "图片搜索"],
+                        label="搜索类型",
+                        value="文本搜索",
+                        container=False
+                    )
+
+                with gr.Row():
+                    # 文本搜索相关组件
+                    text_query = gr.Textbox(
+                        label="搜索文本",
+                        placeholder="请输入搜索关键词",
+                        lines=2,
+                        visible=True,
+                        container=True
+                    )
+                    search_mode = gr.Radio(
+                        choices=["frame", "summary"],
+                        label="搜索模式",
+                        value="frame",
+                        visible=True,
+                        info="frame: 搜索视频帧 | summary: 搜索视频摘要",
+                        container=True
+                    )
+
+                # 图片搜索相关组件
+                with gr.Row(visible=False) as image_search_row:
+                    image_file = gr.Image(
+                        label="上传图片",
+                        type="pil",
+                        container=True
+                    )
+                    image_url = gr.Textbox(
+                        label="图片URL",
+                        placeholder="请输入图片URL",
+                        container=True
+                    )
+
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        page = gr.Number(
+                            label="页码",
+                            value=1,
+                            minimum=1,
+                            step=1
+                        )
+                    with gr.Column(scale=1):
+                        page_size = gr.Number(
+                            label="每页数量",
+                            value=6,
+                            minimum=1,
+                            maximum=20,
+                            step=1
                         )
 
-                    with gr.Row():
-                        # 文本搜索相关组件
-                        text_query = gr.Textbox(
-                            label="搜索文本",
-                            placeholder="请输入搜索关键词",
-                            lines=2,
-                            visible=True,
-                            container=True
-                        )
-                        search_mode = gr.Radio(
-                            choices=["frame", "summary"],
-                            label="搜索模式",
-                            value="frame",
-                            visible=True,
-                            info="frame: 搜索视频帧 | summary: 搜索视频摘要",
-                            container=True
-                        )
+                with gr.Row():
+                    search_button = gr.Button("搜索", elem_classes="search-button")
 
-                    # 图片搜索相关组件
-                    with gr.Row(visible=False) as image_search_row:
-                        image_file = gr.Image(
-                            label="上传图片",
-                            type="pil",
-                            container=True
-                        )
-                        image_url = gr.Textbox(
-                            label="图片URL",
-                            placeholder="请输入图片URL",
-                            container=True
-                        )
-
-                    with gr.Row():
-                        with gr.Column(scale=1):
-                            page = gr.Number(
-                                label="页码",
-                                value=1,
-                                minimum=1,
-                                step=1
-                            )
-                        with gr.Column(scale=1):
-                            page_size = gr.Number(
-                                label="每页数量",
-                                value=6,
-                                minimum=1,
-                                maximum=20,
-                                step=1
-                            )
-
-                    with gr.Row():
-                        search_button = gr.Button("搜索", elem_classes="search-button")
-
-                # 搜索结果区域
-                with gr.Column(elem_classes="gallery-container"):
+            # 搜索结果和视频播放区域
+            with gr.Row(elem_classes="results-container"):
+                # 左侧搜索结果
+                with gr.Column(elem_classes="gallery-area"):
                     gr.Markdown("## 搜索结果")
                     gallery = gr.Gallery(
                         label="",
@@ -294,22 +294,22 @@ def create_interface():
                         elem_classes="status-box"
                     )
 
-            # 右侧视频播放区域
-            with gr.Column(elem_id="video-area"):
-                video_area = gr.HTML(
-                    label="视频播放",
-                    value="""
-                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
-                         background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-                        <div style="text-align: center;">
-                            <svg style="width:64px;height:64px;margin-bottom:1.5rem;color:#6c757d" viewBox="0 0 24 24">
-                                <path fill="currentColor" d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
-                            </svg>
-                            <div style="color:#6c757d;font-size:1.1rem;">请选择要播放的视频</div>
+                # 右侧视频播放区域
+                with gr.Column(elem_classes="video-area"):
+                    gr.Markdown("## 视频播放")
+                    video_area = gr.HTML(
+                        value="""
+                        <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
+                             background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                            <div style="text-align: center;">
+                                <svg style="width:64px;height:64px;margin-bottom:1.5rem;color:#6c757d" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
+                                </svg>
+                                <div style="color:#6c757d;font-size:1.1rem;">请选择要播放的视频</div>
+                            </div>
                         </div>
-                    </div>
-                    """
-                )
+                        """
+                    )
 
         # 事件绑定部分保持不变
         search_type.change(
