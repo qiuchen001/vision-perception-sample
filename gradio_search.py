@@ -72,12 +72,21 @@ def search_videos(
                     return [], None, "请上传图片或输入图片URL"
                 
                 try:
-                    # 如果是PIL Image对象，直接使用
-                    if isinstance(image_file, Image.Image):
+                    if image_url.strip():
+                        # 使用图片URL进行搜索
+                        print(f"Using image URL: {image_url}")  # 调试日志
+                        results = search_service.search_by_image(
+                            image_file=None,
+                            image_url=image_url,
+                            page=page,
+                            page_size=page_size
+                        )
+                    elif isinstance(image_file, Image.Image):
+                        # 使用上传的图片进行搜索
                         print("Using PIL Image directly")  # 调试日志
                         results = search_service.search_by_image(
-                            image_file=image_file,  # 直接传递PIL Image对象
-                            image_url=image_url if not image_file else None,
+                            image_file=image_file,
+                            image_url=None,
                             page=page,
                             page_size=page_size
                         )
@@ -325,11 +334,33 @@ def create_interface():
                         """
                     )
 
-        # 事件绑定部分保持不变
+        # 添加图片输入组件的互斥处理
+        def clear_other_input(value, is_url):
+            """当一个输入有值时，清除另一个输入"""
+            if is_url and value:  # URL输入有值时
+                return gr.update(value=None), gr.update()
+            elif not is_url and value is not None:  # 图片上传有值时
+                return gr.update(), gr.update(value="")
+            return gr.update(), gr.update()
+
+        # 绑定事件
         search_type.change(
             fn=update_input_visibility,
             inputs=[search_type],
             outputs=[text_query, search_mode, image_file, image_url]
+        )
+
+        # 添加图片输入互斥处理
+        image_file.change(
+            fn=lambda x: clear_other_input(x, False),
+            inputs=[image_file],
+            outputs=[image_file, image_url]
+        )
+
+        image_url.change(
+            fn=lambda x: clear_other_input(x, True),
+            inputs=[image_url],
+            outputs=[image_file, image_url]
         )
 
         search_button.click(
