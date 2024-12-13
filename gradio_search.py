@@ -14,30 +14,68 @@ def format_video_info(video):
     video_url = video.get('path', '')
     title = video.get('title', '未知')
 
-    info = f"""
-    <div style='margin-bottom: 10px;'>
-    <strong>标题:</strong> {title}<br>
-    """
-    if 'timestamp' in video:
-        info += f"<strong>时间戳:</strong> {video['timestamp']}秒<br>"
+    info = "<div style='color: #666; line-height: 1.6;'>"
+    
+    # 添加标签信息
     if 'tags' in video and video['tags']:
-        info += f"<strong>标签:</strong> {', '.join(video['tags'])}<br>"
+        tags_html = ', '.join([f'<span style="background: #f0f0f0; padding: 2px 8px; border-radius: 12px; margin-right: 8px;">{tag}</span>' for tag in video['tags']])
+        info += f"""
+        <div style="margin-bottom: 12px;">
+            <strong style="color: #444;">标签:</strong><br>
+            <div style="margin-top: 6px;">{tags_html}</div>
+        </div>
+        """
+
+    # 添加时间戳信息
+    if 'timestamp' in video:
+        info += f"""
+        <div style="margin-bottom: 12px;">
+            <strong style="color: #444;">时间戳:</strong> {video['timestamp']}秒
+        </div>
+        """
+
+    # 添加摘要信息
     if 'summary_txt' in video and video['summary_txt']:
-        info += f"<strong>摘要:</strong> {video['summary_txt']}<br>"
+        info += f"""
+        <div style="margin-bottom: 12px;">
+            <strong style="color: #444;">摘要:</strong><br>
+            <div style="margin-top: 6px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                {video['summary_txt']}
+            </div>
+        </div>
+        """
+
     info += "</div>"
     return info, video_url, title
 
 
-def create_video_player_html(video_url, title):
-    """创建视频播放器HTML"""
+def create_video_player_html(video_url, title, video_info):
+    """创建视频播放器和信息展示的HTML"""
     return f"""
-    <div style="height: 100%; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-        <h3 style="margin-top: 0; margin-bottom: 15px;">{title}</h3>
-        <div style="position: relative; width: 100%; padding-top: 56.25%;">
-            <video style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 4px;" controls>
-                <source src="{video_url}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
+    <div class="video-container" style="height: 100%; background: #f5f5f5; border-radius: 8px;">
+        <!-- 视频播放器区域 -->
+        <div style="padding: 20px 20px 0 20px;">
+            <div style="position: relative; width: 100%; padding-top: 56.25%; background: black; border-radius: 8px; overflow: hidden;">
+                <video 
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                    controls
+                    autoplay
+                    preload="auto"
+                >
+                    <source src="{video_url}" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+            </div>
+        </div>
+
+        <!-- 视频信息区域 -->
+        <div style="padding: 20px;">
+            <div class="video-info" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; margin-bottom: 15px; color: #333; font-size: 18px;">{title}</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {video_info}
+                </div>
+            </div>
         </div>
     </div>
     """
@@ -171,34 +209,29 @@ def search_videos(
                 if not thumbnail_url:
                     thumbnail_url = "path/to/default/thumbnail.jpg"
 
-                # 准备视频信息
-                video_info, video_url, title = format_video_info(video)
-                
-                # 获取标签
-                tags = video.get('tags', [])
-                tags_text = f"标签：{', '.join(tags)}" if tags else "无标签"
-
+                # 存储完整的视频信息
                 video_data[str(idx)] = {
-                    'url': video_url,
-                    'title': title,
-                    'info': video_info
+                    'url': video.get('path', ''),
+                    'title': video.get('title', '未知'),
+                    'info': format_video_info(video)[0],  # 只获取格式化后的HTML
+                    'raw_data': video  # 存储原始数据
                 }
 
                 # 为Gallery组件准备数据
                 gallery_data.append((
                     thumbnail_url,  # 图片URL
-                    f"{title}\n{tags_text}"  # 标题和标签
+                    video.get('title', '未知')  # 只显示标题
                 ))
 
             # 存储视频数据
             global _video_data
             _video_data = video_data
 
-            return gallery_data, gr.update(value=""), "搜索完成"
+            return gallery_data, gr.HTML(value=""), "搜索完成"
 
     except Exception as e:
         print(f"Search error: {str(e)}")
-        return [], gr.update(value=""), f"搜索失败: {str(e)}"
+        return [], gr.HTML(value=""), f"搜索失败: {str(e)}"
 
 
 def on_select(evt: gr.SelectData):
@@ -210,7 +243,8 @@ def on_select(evt: gr.SelectData):
             if video_info:
                 html_content = create_video_player_html(
                     video_info['url'],
-                    video_info['title']
+                    video_info['title'],
+                    video_info['info']  # 传递完整的视频信息
                 )
                 return gr.HTML(value=html_content)
 
@@ -249,7 +283,8 @@ def handle_video_select(index):
                 print(f"Found video info: {video_info}")  # 调试日志
                 html_content = create_video_player_html(
                     video_info['url'],
-                    video_info['title']
+                    video_info['title'],
+                    video_info['info']  # 传递完整的视频信息
                 )
                 return html_content  # 直接返回HTML字符串
         return "<p>无法播放视频</p>"
@@ -473,21 +508,22 @@ def create_interface():
         # 搜索结果和视频播放区域
         with gr.Row(elem_classes="results-container"):
             # 左侧搜索结果
-            with gr.Column(elem_classes="gallery-area"):
+            with gr.Column(scale=1, elem_classes="gallery-area"):
                 gr.Markdown("## 搜索结果")
                 gallery = gr.Gallery(
                     label="搜索结果",
                     show_label=False,
                     elem_id="gallery",
-                    columns=[2],
-                    rows=[3],
+                    columns=2,
+                    object_fit="contain",
                     height="auto",
-                    allow_preview=False
+                    allow_preview=False,
+                    elem_classes="custom-gallery"
                 )
                 status = gr.Textbox(label="状态", interactive=False)
 
             # 右侧视频播放区域
-            with gr.Column(elem_classes="video-area"):
+            with gr.Column(scale=1, elem_classes="video-area"):
                 gr.Markdown("## 视频播放")
                 video_area = gr.HTML(
                     value="""
@@ -500,10 +536,92 @@ def create_interface():
                             <div style="color:#6c757d;font-size:1.1rem;">请选择要播放的视频</div>
                         </div>
                     </div>
-                    """
+                    """,
+                    elem_classes="video-player"
                 )
 
-        # 添加图片输入组件的互斥处理
+        # 添加自定义CSS
+        css = """
+        .results-container {
+            gap: 20px;
+            padding: 20px;
+        }
+        .gallery-area, .video-area {
+            min-height: 600px;
+        }
+        .custom-gallery {
+            min-height: 300px !important;
+            border-radius: 8px !important;
+            background: white !important;
+            padding: 20px !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+        }
+        .custom-gallery img {
+            border-radius: 8px !important;
+            transition: transform 0.2s !important;
+            cursor: pointer !important;
+        }
+        .custom-gallery img:hover {
+            transform: scale(1.02) !important;
+        }
+        .video-player {
+            height: 100% !important;
+            min-height: 400px !important;
+        }
+        .video-info {
+            margin-top: 20px;
+        }
+        """
+
+        # 修改事件处理函数
+        def on_gallery_select(evt: gr.SelectData):
+            """处理 Gallery 选择事件"""
+            try:
+                global _video_data
+                print(f"Selected index: {evt.index}")
+                print(f"Available video data: {list(_video_data.keys())}")
+                
+                video_info = _video_data.get(str(evt.index))
+                if video_info:
+                    print(f"Found video info: {video_info}")
+                    html_content = create_video_player_html(
+                        video_info['url'],
+                        video_info['title'],
+                        video_info['info']
+                    )
+                    print(f"Generated HTML content length: {len(html_content)}")
+                    return html_content  # 直接返回HTML字符串
+                else:
+                    print(f"No video info found for index {evt.index}")
+                    return """
+                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
+                         background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                        <div style="text-align: center;">
+                            <div style="color:#dc3545;font-size:1.1rem;">无法加载视频</div>
+                        </div>
+                    </div>
+                    """
+            except Exception as e:
+                print(f"Error in on_gallery_select: {e}")
+                import traceback
+                traceback.print_exc()
+                return f"""
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
+                     background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <div style="text-align: center;">
+                        <div style="color:#dc3545;font-size:1.1rem;">播放错误: {str(e)}</div>
+                    </div>
+                </div>
+                """
+
+        # 绑定 Gallery 选择事件
+        gallery.select(
+            fn=on_gallery_select,
+            outputs=video_area,
+            show_progress=True
+        )
+
+        # 添加图片输入组件互斥处理
         def clear_other_input(value, is_url):
             """当一个输入有值时，清除另一个输入"""
             if is_url and value:  # URL输入有值时
@@ -544,29 +662,6 @@ def create_interface():
                 page_size
             ],
             outputs=[gallery, video_area, status]
-        )
-
-        # 绑定 Gallery 的选择事件
-        def on_video_select(evt: gr.SelectData):
-            """处理视频选择事件"""
-            try:
-                global _video_data
-                video_info = _video_data.get(str(evt.index))
-                if video_info:
-                    html_content = create_video_player_html(
-                        video_info['url'],
-                        video_info['title']
-                    )
-                    return gr.update(value=html_content)
-                return gr.update(value="<p>无法播放视频</p>")
-            except Exception as e:
-                print(f"Error in on_video_select: {e}")
-                return gr.update(value=f"<p>播放错误: {str(e)}</p>")
-
-        # 绑定事件
-        gallery.select(
-            fn=on_video_select,
-            outputs=video_area
         )
 
     return iface
