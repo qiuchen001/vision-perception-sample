@@ -1,227 +1,266 @@
 import gradio as gr
 from app.services.video.search import SearchVideoService
 from app import create_app
+from PIL import Image
 import json
-import urllib.parse
-from pathlib import Path
 
 # 创建Flask应用实例
 config_name = "config.Config"
 app = create_app(config_name)
 
-# 配置项
-HOST = "http://localhost:7862"  # 替换为实际的域名
-THUMBNAIL_DIR = "static/thumbnails"  # 缩略图目录
 
-def search_videos(query, page=1, page_size=12):
-    """搜索视频"""
+def format_video_info(video):
+    """格式化视频信息为HTML"""
+    video_url = video.get('path', '')
+    title = video.get('title', '未知')
+
+    info = f"""
+    <div style='margin-bottom: 10px;'>
+    <strong>标题:</strong> {title}<br>
+    """
+    if 'timestamp' in video:
+        info += f"<strong>时间戳:</strong> {video['timestamp']}秒<br>"
+    if 'tags' in video and video['tags']:
+        info += f"<strong>标签:</strong> {', '.join(video['tags'])}<br>"
+    if 'summary_txt' in video and video['summary_txt']:
+        info += f"<strong>摘要:</strong> {video['summary_txt']}<br>"
+    info += "</div>"
+    return info, video_url, title
+
+
+def create_video_player_html(video_url, title):
+    """创建视频播放器HTML"""
+    return f"""
+    <div style="width:100%; max-width:800px; margin:auto;">
+        <h3>{title}</h3>
+        <video width="100%" controls>
+            <source src="{video_url}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    """
+
+
+def search_videos(
+        search_type,
+        text_query="",
+        image_file=None,
+        image_url="",
+        search_mode="frame",
+        page=1,
+        page_size=6
+):
+    """处理视频搜索请求"""
     try:
         with app.app_context():
             search_service = SearchVideoService()
-            results = search_service.search_by_text(query, page, page_size)
-            return results, None
-    except Exception as e:
-        return None, str(e)
 
-def format_video_info(video):
-    """格式化视频信息"""
-    try:
-        info = f"""
-        # {video['title']}
-        
-        **时长:** {video['duration']}秒
-        **时间戳:** {video.get('timestamp', 0)}秒
-        
-        ### 描述
-        {video.get('summary', '暂无描述')}
-        
-        ### 标签
-        {', '.join(json.loads(video['tags']))}
-        """
-        return info
-    except Exception as e:
-        return f"Error: {str(e)}"
+            # 根据搜索类型调用不同的搜索方法
+            if search_type == "文本搜索":
+                if not text_query.strip():
+                    return None, None, "请输入搜索文本"
+                results = search_service.search_by_text(
+                    text_query,
+                    page=page,
+                    page_size=page_size,
+                    search_mode=search_mode
+                )
+            else:  # 图片搜索
+                if image_file is None and not image_url.strip():
+                    return None, None, "请上传图片或输入图片URL"
+                results = search_service.search_by_image(
+                    image_file=image_file,
+                    image_url=image_url if not image_file else None,
+                    page=page,
+                    page_size=page_size
+                )
 
-def get_thumbnail_url(thumbnail_path):
-    """获取缩略图URL"""
-    if thumbnail_path.startswith(('http://', 'https://')):
-        return thumbnail_path
-    
-    # 确保缩略图路径存在
-    thumb_path = Path(THUMBNAIL_DIR) / Path(thumbnail_path).name
-    if not thumb_path.exists():
-        return "static/default_thumb.jpg"
-    
-    return str(thumb_path)
-
-def create_interface():
-    """创建Gradio界面"""
-    with gr.Blocks(css="""
-        #video-container { 
-            min-height: 400px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            background: #f8f9fa;
-        }
-        #video-info {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    """) as interface:
-        error_box = gr.Textbox(visible=False)
-        
-        with gr.Row():
-            with gr.Column(scale=4):
-                search_input = gr.Textbox(
-                    label="搜索视频",
-                    placeholder="输入关键词搜索视频...",
-                    show_label=False
-                )
-            with gr.Column(scale=1):
-                search_btn = gr.Button("搜索", variant="primary")
-                
-        with gr.Row():
-            with gr.Column(scale=2):
-                gallery = gr.Gallery(
-                    label="搜索结果",
-                    show_label=False,
-                    columns=[2, 3, 4],  # 响应式列数
-                    height=600,
-                    object_fit="cover",
-                    preview=False
-                )
-                video_list = gr.State([])
-                current_page = gr.State(1)
-                
-                with gr.Row():
-                    prev_btn = gr.Button("上一页", visible=False)
-                    next_btn = gr.Button("下一页", visible=False)
-                    page_info = gr.Markdown("", visible=False)
-            
-            with gr.Column(scale=3):
-                video_player = gr.Video(
-                    label="视频播放",
-                    height=400,
-                    show_label=False,
-                    elem_id="video-container"
-                )
-                video_info = gr.Markdown(
-                    value="点击左侧缩略图播放视频",
-                    elem_id="video-info"
-                )
-                with gr.Row(visible=False) as loading_indicator:
-                    gr.Markdown("加载中...")
-
-        def on_search(query, page):
-            results, error = search_videos(query, page)
-            if error:
-                return {
-                    error_box: gr.update(visible=True, value=f"搜索出错: {error}"),
-                    gallery: None,
-                    video_list: None
-                }
-                
+            # 格式化输出结果
             if not results:
-                return {
-                    error_box: gr.update(visible=True, value="未找到相关视频"),
-                    gallery: None,
-                    video_list: None
-                }
-                
-            # 处理缩略图和视频列表
-            thumbnails = [get_thumbnail_url(v['thumbnail_path']) for v in results]
-            
-            # 更新分页控件
-            has_prev = page > 1
-            has_next = len(results) >= 12  # 假设每页12个
-            
-            return {
-                error_box: gr.update(visible=False),
-                gallery: thumbnails,
-                video_list: results,
-                prev_btn: gr.update(visible=has_prev),
-                next_btn: gr.update(visible=has_next),
-                page_info: gr.update(visible=True, value=f"第 {page} 页")
-            }
+                return None, None, "未找到匹配的视频"
 
-        def update_video(evt: gr.SelectData, gallery, video_list):
-            try:
-                selected_video = video_list[evt.index]
-                video_url = selected_video['url']
-                
-                # 构建代理URL
-                proxy_url = f"{HOST}/video_proxy?url={urllib.parse.quote(video_url)}"
-                
-                # 格式化视频信息
-                video_info = format_video_info(selected_video)
-                
-                return {
-                    video_player: proxy_url,
-                    video_info: video_info,
-                    error_box: gr.update(visible=False)
-                }
-            except Exception as e:
-                return {
-                    error_box: gr.update(visible=True, value=f"播放出错: {str(e)}"),
-                    video_player: None,
-                    video_info: "视频加载失败"
+            # 准备Gallery数据
+            gallery_data = []
+            video_data = {}  # 存储视频信息
+
+            for idx, video in enumerate(results):
+                # 获取视频封面URL
+                thumbnail_url = video.get('thumbnail_path', '')
+                if not thumbnail_url:
+                    # 如果没有封面，可以使用一个默认图片
+                    thumbnail_url = "path/to/default/thumbnail.jpg"
+
+                # 准备视频信息
+                video_info, video_url, title = format_video_info(video)
+                video_data[str(idx)] = {
+                    'url': video_url,
+                    'title': title,
+                    'info': video_info
                 }
 
-        # 绑定事件处理
-        search_btn.click(
-            fn=on_search,
-            inputs=[search_input, current_page],
-            outputs=[error_box, gallery, video_list, prev_btn, next_btn, page_info]
+                # 添加到Gallery数据
+                gallery_data.append((
+                    thumbnail_url,  # 图片URL
+                    f"{title}"  # 显示标题
+                ))
+
+            # 将video_data存储为全局变量
+            global _video_data
+            _video_data = video_data
+
+            return gallery_data, gr.HTML(value=""), "搜索完成"
+
+    except Exception as e:
+        return None, None, f"搜索失败: {str(e)}"
+
+
+def on_select(evt: gr.SelectData):
+    """处理视频选择事件"""
+    try:
+        global _video_data
+        if hasattr(evt, 'index'):
+            video_info = _video_data.get(str(evt.index))
+            if video_info:
+                html_content = create_video_player_html(
+                    video_info['url'],
+                    video_info['title']
+                )
+                return gr.HTML(value=html_content)
+
+        return gr.HTML(value="<p>无法播放视频</p>")
+    except Exception as e:
+        print(f"Error in on_select: {e}")
+        return gr.HTML(value=f"<p>播放错误: {str(e)}</p>")
+
+
+def update_input_visibility(search_type):
+    """更新输入组件的可见性"""
+    if search_type == "文本搜索":
+        return (
+            gr.update(visible=True),  # 文本输入
+            gr.update(visible=True),  # 搜索模式
+            gr.update(visible=False),  # 图片上传
+            gr.update(visible=False)   # 图片URL
         )
-        
+    else:
+        return (
+            gr.update(visible=False),  # 文本输入
+            gr.update(visible=False),  # 搜索模式
+            gr.update(visible=True),   # 图片上传
+            gr.update(visible=True)    # 图片URL
+        )
+
+
+# 创建Gradio界面
+def create_interface():
+    with gr.Blocks(title="视频搜索系统") as iface:
+        gr.Markdown("# 视频搜索系统")
+
+        with gr.Row():
+            search_type = gr.Radio(
+                choices=["文本搜索", "图片搜索"],
+                label="搜索类型",
+                value="文本搜索"
+            )
+
+        with gr.Row():
+            # 文本搜索相关组件
+            text_query = gr.Textbox(
+                label="搜索文本",
+                placeholder="请输入搜索关键词",
+                lines=2,
+                visible=True
+            )
+            search_mode = gr.Radio(
+                choices=["frame", "summary"],
+                label="搜索模式",
+                value="frame",
+                visible=True,
+                info="frame: 搜索视频帧 | summary: 搜索视频摘要"
+            )
+
+            # 图片搜索相关组件
+            image_file = gr.Image(
+                label="上传图片",
+                type="pil",
+                visible=False
+            )
+            image_url = gr.Textbox(
+                label="图片URL",
+                placeholder="请输入图片URL",
+                visible=False
+            )
+
+        with gr.Row():
+            page = gr.Number(
+                label="页码",
+                value=1,
+                minimum=1,
+                step=1
+            )
+            page_size = gr.Number(
+                label="每页数量",
+                value=6,
+                minimum=1,
+                maximum=20,
+                step=1
+            )
+
+        with gr.Row():
+            search_button = gr.Button("搜索")
+
+        # 搜索结果展示
+        with gr.Row():
+            gallery = gr.Gallery(
+                label="搜索结果",
+                show_label=True,
+                elem_id="gallery",
+                columns=[2],
+                rows=[3],
+                height="auto",
+                allow_preview=False
+            )
+
+        # 状态信息
+        status = gr.Textbox(label="状态", interactive=False)
+
+        # 视频播放区域
+        video_area = gr.HTML(label="视频播放")
+
+        # 绑定事件
+        search_type.change(
+            fn=update_input_visibility,
+            inputs=[search_type],
+            outputs=[text_query, search_mode, image_file, image_url]
+        )
+
+        search_button.click(
+            fn=search_videos,
+            inputs=[
+                search_type,
+                text_query,
+                image_file,
+                image_url,
+                search_mode,
+                page,
+                page_size
+            ],
+            outputs=[gallery, video_area, status]
+        )
+
+        # 绑定Gallery点击事件
         gallery.select(
-            fn=update_video,
-            inputs=[gallery, video_list],
-            outputs=[video_player, video_info, error_box]
+            fn=on_select,
+            outputs=video_area
         )
-        
-        # 分页处理
-        def update_page(page, delta):
-            return page + delta
-            
-        prev_btn.click(
-            fn=update_page,
-            inputs=[current_page, gr.State(-1)],
-            outputs=current_page
-        ).then(
-            fn=on_search,
-            inputs=[search_input, current_page],
-            outputs=[error_box, gallery, video_list, prev_btn, next_btn, page_info]
-        )
-        
-        next_btn.click(
-            fn=update_page,
-            inputs=[current_page, gr.State(1)],
-            outputs=current_page
-        ).then(
-            fn=on_search,
-            inputs=[search_input, current_page],
-            outputs=[error_box, gallery, video_list, prev_btn, next_btn, page_info]
-        )
-        
-        # 回车搜索
-        search_input.submit(
-            fn=on_search,
-            inputs=[search_input, current_page],
-            outputs=[error_box, gallery, video_list, prev_btn, next_btn, page_info]
-        )
-        
-    return interface
 
+    return iface
+
+
+# 初始化全局变量
+_video_data = {}
+
+# 启动服务
 if __name__ == "__main__":
     iface = create_interface()
-    iface.launch(
-        server_name="0.0.0.0",
-        server_port=7862,
-        share=False,
-        debug=True
-    )
+    iface.launch(server_name="0.0.0.0", server_port=7862)  # 使用7862端口
