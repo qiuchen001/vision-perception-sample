@@ -21,8 +21,9 @@ def create_app(config_name):
     app.config['SERVER_HOST'] = SERVER_HOST
     app.config['MILVUS_CLIENT'] = MilvusClientWrapper(uri=f"http://{SERVER_HOST}:19530", db_name=os.getenv("DB_NAME"))
 
-    from .routes import main, video_api
+    from .routes import main, video_api, video_proxy
     app.register_blueprint(main.bp)
     app.register_blueprint(video_api.bp, url_prefix='/vision-analyze/video')
+    app.register_blueprint(video_proxy.bp)
 
     return app
