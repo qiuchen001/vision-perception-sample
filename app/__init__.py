@@ -11,8 +11,6 @@ def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config_name)
 
-    # db.init_app(app)
-
     # 配置日志
     dictConfig(logging_config.LOGGING_CONFIG)
 
@@ -21,9 +19,10 @@ def create_app(config_name):
     app.config['SERVER_HOST'] = SERVER_HOST
     app.config['MILVUS_CLIENT'] = MilvusClientWrapper(uri=f"http://{SERVER_HOST}:19530", db_name=os.getenv("DB_NAME"))
 
+    # 注册蓝图
     from .routes import main, video_api, video_proxy
     app.register_blueprint(main.bp)
     app.register_blueprint(video_api.bp, url_prefix='/vision-analyze/video')
-    app.register_blueprint(video_proxy.bp)
+    app.register_blueprint(video_proxy.bp, url_prefix='/vision-analyze/video')
 
     return app

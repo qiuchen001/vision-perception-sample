@@ -51,34 +51,101 @@ def format_video_info(video):
 
 def create_video_player_html(video_url, title, video_info):
     """创建视频播放器和信息展示的HTML"""
-    return f"""
-    <div class="video-container" style="height: 100%; background: #f5f5f5; border-radius: 8px;">
-        <!-- 视频播放器区域 -->
-        <div style="padding: 20px 20px 0 20px;">
-            <div style="position: relative; width: 100%; padding-top: 56.25%; background: black; border-radius: 8px; overflow: hidden;">
-                <video 
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                    controls
-                    autoplay
-                    preload="auto"
-                >
-                    <source src="{video_url}" type="video/mp4">
-                    您的浏览器不支持视频播放。
-                </video>
+    try:
+        # 确保所有输入都是字符串类型
+        video_url = str(video_url) if video_url else ''
+        title = str(title) if title else ''
+        video_info = str(video_info) if video_info else ''
+        
+        # 处理HTML转义字符
+        video_info = (video_info
+            .replace('\\n', '\n')
+            .replace("\\'", "'")
+            .replace('&quot;', '"')
+            .replace('&amp;', '&')
+            .replace('&lt;', '<')
+            .replace('&gt;', '>')
+        )
+        
+        # 检查视频URL是否有效
+        if not video_url.startswith('http'):
+            raise ValueError("Invalid video URL")
+            
+        # 通过代理服务访问视频
+        proxy_url = f"http://127.0.0.1:30501/vision-analyze/video/proxy/{video_url}"
+            
+        print(f"Original URL: {video_url}")
+        print(f"Proxy URL: {proxy_url}")
+            
+        # 构建HTML内容
+        html = f"""
+        <div class="video-container" style="height: 100%; background: #f5f5f5; border-radius: 8px;">
+            <!-- 视频播放器区域 -->
+            <div style="padding: 20px 20px 0 20px;">
+                <div style="position: relative; width: 100%; padding-top: 56.25%; background: black; border-radius: 8px; overflow: hidden;">
+                    <video 
+                        id="video-player"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                        controls
+                        autoplay
+                        preload="auto"
+                        controlsList="nodownload"
+                    >
+                        <source src="{proxy_url}" type="video/mp4">
+                        <p style="color: white; text-align: center;">您的浏览器不支持视频播放</p>
+                    </video>
+                </div>
+            </div>
+
+            <!-- 视频信息区域 -->
+            <div style="padding: 20px;">
+                <div class="video-info" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; color: #333; font-size: 18px;">{title}</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        {video_info}
+                    </div>
+                </div>
             </div>
         </div>
+        """
 
-        <!-- 视频信息区域 -->
-        <div style="padding: 20px;">
-            <div class="video-info" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        html = f"""
+        <div class="video-container" style="height: 100%; background: #f5f5f5; border-radius: 8px;">
+            <!-- 视频播放器区域 -->
+            <div style="padding: 20px 20px 0 20px;">
+                <div style="position: relative; width: 100%; padding-top: 56.25%; background: black; border-radius: 8px; overflow: hidden;">
+                    <video 
+                        id="video-player"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                        controls
+                        autoplay
+                        preload="auto"
+                        controlsList="nodownload"
+                    >
+                        <source src="{proxy_url}" type="video/mp4">
+                        <p style="color: white; text-align: center;">您的浏览器不支持视频播放</p>
+                    </video>
+                </div>
+            </div>
+            
+            <!-- 视频信息区域 -->
+            <div style="padding: 20px;">
                 <h3 style="margin-top: 0; margin-bottom: 15px; color: #333; font-size: 18px;">{title}</h3>
                 <div style="max-height: 300px; overflow-y: auto;">
                     {video_info}
                 </div>
             </div>
         </div>
-    </div>
-    """
+        """
+        
+        print(f"Video URL: {video_url}")
+        print(f"Proxy URL: {proxy_url}")
+        print(f"Generated HTML length: {len(html)}")
+        return html
+        
+    except Exception as e:
+        print(f"Error in create_video_player_html: {e}")
+        return create_error_html(f"视频播放器创建失败: {str(e)}")
 
 
 def format_gallery_html(gallery_data):
@@ -219,7 +286,7 @@ def search_videos(
 
                 # 为Gallery组件准备数据
                 gallery_data.append((
-                    thumbnail_url,  # 图片URL
+                    thumbnail_url,  # 图URL
                     video.get('title', '未知')  # 只显示标题
                 ))
 
@@ -522,7 +589,7 @@ def create_interface():
                 )
                 status = gr.Textbox(label="状态", interactive=False)
 
-            # 右侧视频播放区域
+            # 右侧视频���放区域
             with gr.Column(scale=1, elem_classes="video-area"):
                 gr.Markdown("## 视频播放")
                 video_area = gr.HTML(
@@ -582,37 +649,41 @@ def create_interface():
                 print(f"Available video data: {list(_video_data.keys())}")
                 
                 video_info = _video_data.get(str(evt.index))
-                if video_info:
-                    print(f"Found video info: {video_info}")
-                    html_content = create_video_player_html(
-                        video_info['url'],
-                        video_info['title'],
-                        video_info['info']
-                    )
-                    print(f"Generated HTML content length: {len(html_content)}")
-                    return html_content  # 直接返回HTML字符串
-                else:
+                if not video_info:
                     print(f"No video info found for index {evt.index}")
-                    return """
-                    <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
-                         background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-                        <div style="text-align: center;">
-                            <div style="color:#dc3545;font-size:1.1rem;">无法加载视频</div>
-                        </div>
-                    </div>
-                    """
+                    return create_error_html("无法加载视频信息")
+                    
+                print(f"Found video info: {video_info}")
+                
+                # 确保所有必要的字段都存在
+                required_fields = ['url', 'title', 'info']
+                if not all(key in video_info for key in required_fields):
+                    missing_fields = [field for field in required_fields if field not in video_info]
+                    print(f"Missing required fields: {missing_fields}")
+                    return create_error_html("视频信息不完整")
+                    
+                # 检查URL是否有效
+                if not video_info['url'] or not isinstance(video_info['url'], str):
+                    print(f"Invalid video URL: {video_info['url']}")
+                    return create_error_html("无效的视频地址")
+                    
+                # 创建视频播放器HTML
+                html_content = create_video_player_html(
+                    video_info['url'],
+                    video_info['title'],
+                    video_info['info']
+                )
+                
+                if not html_content:
+                    return create_error_html("视频播放器创建失败")
+                    
+                return html_content
+                
             except Exception as e:
                 print(f"Error in on_gallery_select: {e}")
                 import traceback
                 traceback.print_exc()
-                return f"""
-                <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
-                     background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-                    <div style="text-align: center;">
-                        <div style="color:#dc3545;font-size:1.1rem;">播放错误: {str(e)}</div>
-                    </div>
-                </div>
-                """
+                return create_error_html(f"播放错误: {str(e)}")
 
         # 绑定 Gallery 选择事件
         gallery.select(
@@ -674,3 +745,14 @@ _video_data = {}
 if __name__ == "__main__":
     iface = create_interface()
     iface.launch(server_name="0.0.0.0", server_port=7862)  # 使用7862端口
+
+def create_error_html(message):
+    """创建错误提示的HTML"""
+    return f"""
+    <div style="height: 100%; display: flex; align-items: center; justify-content: center; 
+         background: white; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+        <div style="text-align: center;">
+            <div style="color:#dc3545;font-size:1.1rem;">{message}</div>
+        </div>
+    </div>
+    """
