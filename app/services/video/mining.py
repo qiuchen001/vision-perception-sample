@@ -82,8 +82,8 @@ class MiningVideoService:
         model_name = os.getenv("VISION_MODEL_NAME")
 
         client = OpenAI(
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key=os.getenv("API_KEY"),
+            base_url=os.getenv("BASE_URL"),
         )
 
         base64_images = extract_frames_and_convert_to_base64(video_url)

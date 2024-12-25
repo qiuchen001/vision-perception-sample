@@ -169,8 +169,8 @@ class UploadVideoService:
         
         # 2. 调用通义千问VL模型
         client = OpenAI(
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+            api_key=os.getenv("API_KEY"),
+            base_url=os.getenv("BASE_URL")
         )
 
         messages = [{
