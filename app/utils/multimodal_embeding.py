@@ -1,9 +1,7 @@
 import os
 import base64
-from typing import Optional
 from PIL import Image
 import io
-import json
 import dashscope
 from http import HTTPStatus
 from app.utils.logger import logger
