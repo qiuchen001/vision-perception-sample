@@ -1,13 +1,7 @@
 import os
 import requests
 from urllib.parse import urlparse
-import logging
-
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+from app.utils.logger import logger
 
 
 def get_video_id(url):
@@ -28,11 +22,11 @@ def download_video(url, save_dir):
 
         # 如果文件已存在,跳过下载
         if os.path.exists(save_path):
-            logging.info(f"视频 {video_id} 已存在,跳过下载")
+            logger.info(f"视频 {video_id} 已存在,跳过下载")
             return True
 
         # 发起请求下载视频
-        logging.info(f"开始下载视频 {video_id}")
+        logger.info(f"开始下载视频 {video_id}")
         response = requests.get(url, stream=True)
         response.raise_for_status()
 
@@ -42,11 +36,11 @@ def download_video(url, save_dir):
                 if chunk:
                     f.write(chunk)
 
-        logging.info(f"视频 {video_id} 下载完成")
+        logger.info(f"视频 {video_id} 下载完成")
         return True
 
     except Exception as e:
-        logging.error(f"下载视频 {url} 失败: {str(e)}")
+        logger.error(f"下载视频 {url} 失败: {str(e)}")
         return False
 
 
@@ -66,16 +60,16 @@ def main():
     # 过滤掉空行
     urls = [url for url in urls if url.strip()]
 
-    logging.info(f"共有 {len(urls)} 个不重复视频需要下载")
+    logger.info(f"共有 {len(urls)} 个不重复视频需要下载")
 
     # 下载视频
     success = 0
     for i, url in enumerate(urls, 1):
-        logging.info(f"正在处理第 {i}/{len(urls)} 个视频")
+        logger.info(f"正在处理第 {i}/{len(urls)} 个视频")
         if download_video(url, save_dir):
             success += 1
 
-    logging.info(f"下载完成,成功 {success} 个,失败 {len(urls) - success} 个")
+    logger.info(f"下载完成,成功 {success} 个,失败 {len(urls) - success} 个")
 
 
 if __name__ == "__main__":

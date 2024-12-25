@@ -2,7 +2,7 @@ from sentence_transformers import SentenceTransformer
 import os, json
 from openai import OpenAI
 from dotenv import load_dotenv
-import logging
+from app.utils.logger import logger
 load_dotenv()
 
 
@@ -30,11 +30,11 @@ def embed_fn(text):
         js = json.loads(response_json)
 
         embedding = js['data'][0]['embedding']
-        logging.info(f"成功生成embedding,维度:{len(embedding)}")
+        logger.info(f"成功生成embedding,维度:{len(embedding)}")
         return embedding
 
     except Exception as e:
-        logging.error(f"生成embedding失败:{str(e)}")
+        logger.error(f"生成embedding失败:{str(e)}")
         raise e
 
 
