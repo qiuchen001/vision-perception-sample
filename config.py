@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config:
     # 服务器配置
     SERVER_HOST = os.getenv('SERVER_HOST', 'localhost')
