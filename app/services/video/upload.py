@@ -10,7 +10,8 @@ from app.utils.logger import logger
 from app.utils.common import *
 from app.utils.embedding import *
 from app.utils.minio_uploader import MinioFileUploader
-from app.utils.clip_embeding import clip_embedding
+# from app.utils.clip_embeding import clip_embedding
+from app.utils.multimodal_embeding import multimodal_embedding as clip_embedding
 from app.utils.milvus_operator import video_frame_operator
 from werkzeug.utils import secure_filename
 from config import Config
@@ -122,41 +123,42 @@ class UploadVideoService:
             frames: 提取的视频帧列表
         """
         m_ids, embeddings, paths, at_seconds = [], [], [], []
-        
+
         # 获取视频的FPS
         cap = cv2.VideoCapture(video_url)
         fps = cap.get(cv2.CAP_PROP_FPS)
         cap.release()
-        
+
         for idx, frame in enumerate(frames):
             try:
                 # 生成帧的向量表示
                 embedding = clip_embedding.embedding_image(frame)
                 if embedding is None:
                     continue
-                    
+
                 # 准备数据
                 m_ids.append(str(uuid.uuid4()))
-                embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                # embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                embeddings.append(embedding)
                 paths.append(video_url)
-                
+
                 # 正确计算时间戳（秒）
                 # 当前帧实际的帧号 = 索引 * 帧间隔
                 # 时间戳 = 帧号 / FPS
                 frame_number = idx * self.frame_interval
                 timestamp = int(frame_number / fps)
                 at_seconds.append(timestamp)
-                
+
                 # 使用配置的批处理大小
                 if len(m_ids) >= self.batch_size:
                     video_frame_operator.insert_data([m_ids, embeddings, paths, at_seconds])
                     logger.info(f"批量插入 {len(m_ids)} 帧，时间戳范围: {at_seconds[0]}-{at_seconds[-1]}秒")
                     m_ids, embeddings, paths, at_seconds = [], [], [], []
-                    
+
             except Exception as e:
                 logger.error(f"处理帧 {idx} 失败: {str(e)}")
                 continue
-                
+
         # 处理剩余的帧
         if m_ids:
             video_frame_operator.insert_data([m_ids, embeddings, paths, at_seconds])

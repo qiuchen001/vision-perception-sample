@@ -13,11 +13,12 @@ config_name = "config.Config"
 # 创建Flask应用实例
 app = create_app(config_name)
 
+
 def process_video(video_file):
     """处理上传的视频文件"""
     if video_file is None:
         return "请选择要上传的视频文件"
-        
+
     try:
         # 添加调试信息
         debug_info = f"""
@@ -28,7 +29,7 @@ def process_video(video_file):
         是否有name: {hasattr(video_file, 'name')}
         """
         print(debug_info)  # 打印调试信息
-        
+
         # 在Flask应用上下文中执行
         with app.app_context():
             # 从文件对象获取信息
@@ -47,9 +48,9 @@ def process_video(video_file):
             else:
                 print("进入else分支")
                 filename = f"video_{int(time.time())}.mp4"
-                
+
             print(f"最终使用的文件名: {filename}")  # 打印最终文件名
-                
+
             # 创建临时文件
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1])
             try:
@@ -65,7 +66,7 @@ def process_video(video_file):
                     with open(str(video_file), 'rb') as src:
                         temp_file.write(src.read())
                 temp_file.flush()
-                
+
                 # 创建FileStorage对象
                 with open(temp_file.name, 'rb') as f:
                     file_storage = FileStorage(
@@ -73,11 +74,11 @@ def process_video(video_file):
                         filename=os.path.basename(filename),
                         content_type='video/mp4'
                     )
-                    
+
                     # 创建服务实例并处理视频
                     upload_service = UploadVideoService()
                     result = upload_service.upload(file_storage)
-                    
+
                     # 格式化输出结果
                     output = f"""
                     处理完成!
@@ -87,20 +88,21 @@ def process_video(video_file):
                     标题: {result.get('title', '未知')}
                     处理帧数: {result.get('processed_frames', 0)}/{result.get('frame_count', 0)}
                     """
-                    
+
                     return output
             finally:
                 # 清理临时文件
                 temp_file.close()
                 if os.path.exists(temp_file.name):
                     os.unlink(temp_file.name)
-        
+
     except Exception as e:
         return f"""
         处理失败: {str(e)}
         文件类型: {type(video_file)}
         文件属性: {dir(video_file) if hasattr(video_file, '__dir__') else '无法获取属性'}
         """
+
 
 # 创建Gradio界面
 def create_interface():
@@ -120,7 +122,8 @@ def create_interface():
     )
     return iface
 
+
 # 启动服务
 if __name__ == "__main__":
     iface = create_interface()
-    iface.launch(server_name="0.0.0.0", server_port=7860) 
+    iface.launch(server_name="0.0.0.0", server_port=7860)
