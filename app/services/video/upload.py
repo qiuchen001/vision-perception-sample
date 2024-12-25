@@ -10,7 +10,7 @@ from app.utils.logger import logger
 from app.utils.common import *
 from app.utils.embedding import *
 from app.utils.minio_uploader import MinioFileUploader
-from app.utils.clip_embeding import clip_embedding
+from app.utils.clip_embedding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator
 from werkzeug.utils import secure_filename
 from config import Config

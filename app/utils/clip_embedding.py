@@ -56,7 +56,7 @@ from config import Config
 #         print(f"Error processing video {video_path}: {e}")
 
 
-class ClipEmbeding:
+class ClipEmbedding:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def __init__(self):
@@ -108,7 +108,7 @@ class ClipEmbeding:
         return image_features, text_features
 
 
-clip_embedding = ClipEmbeding()
+clip_embedding = ClipEmbedding()
 
 if __name__ == "__main__":
     image_path = r"E:\playground\ai\datasets\bdd100k\bdd100k\images\10k\train\00a7ef03-00000000.jpg"

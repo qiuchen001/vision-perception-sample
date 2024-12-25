@@ -5,7 +5,7 @@ import requests
 from io import BytesIO
 import re
 
-from app.utils.clip_embeding import clip_embedding
+from app.utils.clip_embedding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator
 
 
