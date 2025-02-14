@@ -1,11 +1,13 @@
 from pymilvus import MilvusClient
 
+
 class MilvusClientWrapper:
     def __init__(self, uri, db_name):
         self.client = MilvusClient(uri=uri, db_name=db_name)
 
     def create_schema(self, auto_id=False, enable_dynamic_fields=True, description=""):
-        return self.client.create_schema(auto_id=auto_id, enable_dynamic_fields=enable_dynamic_fields, description=description)
+        return self.client.create_schema(auto_id=auto_id, enable_dynamic_fields=enable_dynamic_fields,
+                                         description=description)
 
     def create_collection(self, collection_name, schema):
         return self.client.create_collection(collection_name=collection_name, schema=schema)
