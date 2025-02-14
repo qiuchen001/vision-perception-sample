@@ -589,7 +589,7 @@ def create_interface():
                 )
                 status = gr.Textbox(label="状态", interactive=False)
 
-            # 右侧视频���放区域
+            # 右侧视频播放区域
             with gr.Column(scale=1, elem_classes="video-area"):
                 gr.Markdown("## 视频播放")
                 video_area = gr.HTML(
