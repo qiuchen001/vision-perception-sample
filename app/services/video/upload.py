@@ -66,8 +66,8 @@ class UploadVideoService:
 
             # 添加视频信息到数据库
             if not self.video_dao.check_url_exists(video_oss_url):
-                embedding = embed_fn("")
-                summary_embedding = embed_fn("")
+                embedding = embed_fn(" ")
+                summary_embedding = embed_fn(" ")
                 self.video_dao.init_video(video_oss_url, embedding, summary_embedding, thumbnail_oss_url, title)
             
             result.update({
@@ -137,8 +137,8 @@ class UploadVideoService:
 
                 # 准备数据
                 m_ids.append(str(uuid.uuid4()))
-                # embeddings.append(embedding[0].detach().cpu().numpy().tolist())
-                embeddings.append(embedding)
+                embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                # embeddings.append(embedding)
                 paths.append(video_url)
 
                 # 正确计算时间戳（秒）

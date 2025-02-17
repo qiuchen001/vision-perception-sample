@@ -79,6 +79,20 @@ def process_video(video_file):
                     upload_service = UploadVideoService()
                     result = upload_service.upload(file_storage)
 
+                    # 检查返回结果
+                    if not result:
+                        return """
+                        处理失败: 视频上传服务返回空结果
+                        请检查服务日志获取详细错误信息
+                        """
+                    
+                    # 检查必要的字段
+                    if not all(key in result for key in ['file_name', 'video_url', 'title']):
+                        return f"""
+                        处理结果格式异常: {result}
+                        缺少必要的返回字段
+                        """
+
                     # 格式化输出结果
                     output = f"""
                     处理完成!

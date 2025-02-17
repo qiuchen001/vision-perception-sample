@@ -4,6 +4,8 @@ Milvus 数据库操作工具类。
 """
 
 import os
+import numpy as np
+import uuid
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 from pymilvus import connections, db, Collection, utility
@@ -89,19 +91,47 @@ class MilvusOperator:
             cls._instances[instance_key] = cls(database, collection, metric_type, **kwargs)
         return cls._instances[instance_key]
 
-    def insert_data(self, data: List[Dict[str, Any]]) -> MutationResult:
+    def insert_data(self, data: List[Dict[str, Any]]) -> Optional[MutationResult]:
         """
         插入数据到集合。
-
+        
         Args:
             data: 要插入的数据列表
+            
+        Returns:
+            Optional[MutationResult]: 插入结果,失败时返回 None
         """
+        collection = None
         try:
+            # 验证输入数据
+            if not data or not isinstance(data, list):
+                print(f"无效的输入数据格式: {type(data)}")
+                return None
+            
             collection = Collection(self.coll_name)
+            
+            # 打印调试信息
+            print(f"正在插入数据到集合 {self.coll_name}")
+            print(f"数据示例: {data[0] if data else None}")
+            
             res = collection.insert(data)
+            
+            # 打印插入结果
+            print(f"数据插入成功: {res}")
             return res
+        
         except Exception as e:
-            raise Exception(f"插入数据失败: {str(e)}")
+            print(f"插入数据失败: {str(e)}")
+            # 返回 None 而不是抛出异常
+            return None
+        
+        finally:
+            # 确保释放资源
+            if collection:
+                try:
+                    collection.release()
+                except Exception as e:
+                    print(f"释放集合资源失败: {str(e)}")
 
     def search_data(
             self,
@@ -244,3 +274,35 @@ video_frame_operator = MilvusOperator.get_instance(
     database='video_db',
     collection='video_frame_vector'
 )
+
+
+if __name__ == "__main__":
+    def generate_test_data(num_frames=10):
+        """生成测试数据"""
+        data = []
+        video_id = f"video_{uuid.uuid4().hex[:8]}"  # 随机生成一个视频ID
+
+        for i in range(num_frames):
+            # 生成随机向量并归一化
+            embedding = np.random.randn(768)
+            embedding = embedding / np.linalg.norm(embedding)
+
+            frame_data = {
+                "m_id": f"{video_id}_{i}",  # 组合ID
+                "embedding": embedding.tolist(),  # numpy数组转为list
+                "video_id": video_id,
+                "at_seconds": i * 5  # 每5秒一帧
+            }
+            data.append(frame_data)
+
+        return data
+
+    test_data = generate_test_data()
+
+    # 准备数据
+    m_ids = [data["m_id"] for data in test_data]
+    embeddings = [data["embedding"] for data in test_data]
+    video_ids = [data["video_id"] for data in test_data]
+    at_seconds = [data["at_seconds"] for data in test_data]
+
+    video_frame_operator.insert_data([m_ids, embeddings, video_ids, at_seconds])
