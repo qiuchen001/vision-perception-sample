@@ -67,7 +67,8 @@ class VideoDAO:
             "summary_txt": None,
             "tags": None
         }
-        self.milvus_client.insert(self.collection_name, [video_data])
+        res = self.milvus_client.insert(self.collection_name, [video_data])
+        return res
 
     def upsert_video(self, video):
         user_data = {
