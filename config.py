@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from app.utils.embedding_types import EmbeddingType
 
 load_dotenv()
 
@@ -21,5 +22,18 @@ class Config:
         'cn-clip',
         'clip_cn_vit-l-14-336.pt'
     )
+
+    # 默认使用CLIP模型
+    DEFAULT_EMBEDDING_MODEL = EmbeddingType.CLIP
+    
+    # 从环境变量获取模型类型
+    @classmethod
+    def get_embedding_model_type(cls) -> EmbeddingType:
+        model_type = os.getenv('EMBEDDING_MODEL', cls.DEFAULT_EMBEDDING_MODEL.value)
+        try:
+            return EmbeddingType(model_type.lower())
+        except ValueError:
+            print(f"警告:不支持的模型类型 {model_type},使用默认模型 {cls.DEFAULT_EMBEDDING_MODEL.value}")
+            return cls.DEFAULT_EMBEDDING_MODEL
 
     # ... 其他配置 ...

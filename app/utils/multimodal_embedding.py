@@ -4,10 +4,13 @@ from PIL import Image
 import io
 import dashscope
 from http import HTTPStatus
+from app.utils.embedding_base import EmbeddingBase
 from app.utils.logger import logger
+from typing import List, Tuple
+from app.utils.embedding_types import EmbeddingType
 
 
-class MultiModalEmbedding:
+class MultiModalEmbedding(EmbeddingBase):
     """通义千问多模态embedding实现"""
 
     def __init__(self):
@@ -20,7 +23,7 @@ class MultiModalEmbedding:
         image.save(buffer, format="PNG")
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-    def embedding_image(self, image: Image.Image):
+    def embedding_image(self, image: Image.Image) -> List[float]:
         """生成图片的embedding向量"""
         try:
             # 将图片转换为base64
@@ -34,9 +37,7 @@ class MultiModalEmbedding:
             )
 
             if resp.status_code == HTTPStatus.OK:
-                embedding = resp.output['embeddings'][0]['embedding']
-                logger.info(f"成功生成图片embedding,维度:{len(embedding)}")
-                return embedding
+                return resp.output['embeddings'][0]['embedding']
             else:
                 raise Exception(f"API调用失败: {resp.code}, {resp.message}")
 
@@ -44,7 +45,7 @@ class MultiModalEmbedding:
             logger.error(f"生成图片embedding失败:{str(e)}")
             raise e
 
-    def embedding_text(self, text: str):
+    def embedding_text(self, text: str) -> List[float]:
         """生成文本的embedding向量"""
         try:
             # 调用DashScope API
@@ -54,9 +55,7 @@ class MultiModalEmbedding:
             )
 
             if resp.status_code == HTTPStatus.OK:
-                embedding = resp.output['embeddings'][0]['embedding']
-                logger.info(f"成功生成文本embedding,维度:{len(embedding)}")
-                return embedding
+                return resp.output['embeddings'][0]['embedding']
             else:
                 raise Exception(f"API调用失败: {resp.code}, {resp.message}")
 
@@ -64,11 +63,11 @@ class MultiModalEmbedding:
             logger.error(f"生成文本embedding失败:{str(e)}")
             raise e
 
-    def embedding(self, image: Image.Image, text: str):
+    def embedding(self, image: Image.Image, text: str) -> Tuple[List[float], List[float]]:
         """生成图文联合embedding向量"""
-        image_embedding = self.embedding_image(image)
-        text_embedding = self.embedding_text(text)
-        return image_embedding, text_embedding
+        img_emb = self.embedding_image(image)
+        txt_emb = self.embedding_text(text)
+        return img_emb, txt_emb
 
 
 # 创建全局实例
@@ -90,3 +89,11 @@ if __name__ == "__main__":
     # 测试图文联合embedding
     img_emb, txt_emb = multimodal_embedding.embedding(pil_image, "这是一张测试图片")
     print(f"图文embedding维度:{len(img_emb)}, {len(txt_emb)}")
+    #
+    # # 使用环境变量中配置的模型
+    # embedding = EmbeddingFactory.create_embedding()
+    # image = Image.open('test.jpg')
+    # img_emb, txt_emb = embedding.embedding(image, '测试文本')
+    #
+    # # 也可以显式指定模型类型
+    # clip_embedding = EmbeddingFactory.create_embedding(EmbeddingType.CLIP)

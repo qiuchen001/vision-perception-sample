@@ -4,8 +4,9 @@ import os
 import requests
 from io import BytesIO
 import re
+import numpy as np
 
-from app.utils.clip_embedding import clip_embedding
+from app.utils.embedding_factory import EmbeddingFactory
 from app.utils.milvus_operator import video_frame_operator
 
 
@@ -90,26 +91,29 @@ def video_frame_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[
         return [], []
 
     try:
+        # 获取embedding实例
+        embedding = EmbeddingFactory.create_embedding()
+        
         # 根据输入类型生成向量
         if isinstance(query, str):
             if _is_valid_url(query):  # 检查是否为URL
                 try:
                     image = _load_image_from_url(query)
-                    input_embedding = clip_embedding.embedding_image(image)
+                    input_embedding = embedding.embedding_image(image)
                 except Exception as e:
                     print(f"处理在线图片失败: {str(e)}")
                     return [], []
             elif os.path.isfile(query):  # 本地图片路径
                 try:
                     image = Image.open(query).convert('RGB')
-                    input_embedding = clip_embedding.embedding_image(image)
+                    input_embedding = embedding.embedding_image(image)
                 except Exception as e:
                     print(f"读取本地图片失败: {str(e)}")
                     return [], []
             else:  # 文本查询
-                input_embedding = clip_embedding.embedding_text(query)
+                input_embedding = embedding.embedding_text(query)
         elif isinstance(query, Image.Image):
-            input_embedding = clip_embedding.embedding_image(query)
+            input_embedding = embedding.embedding_image(query)
         else:
             print(f"不支持的查询类型: {type(query)}")
             return [], []
@@ -118,9 +122,8 @@ def video_frame_search(query: Union[str, Image.Image]) -> Tuple[List[str], List[
             print("无法生成查询向量")
             return [], []
 
-        # 转换向量格式
-        input_embedding = input_embedding[0].detach().cpu().numpy()
-        input_embedding = input_embedding.astype('float32')
+        # 转换向量格式为numpy数组
+        input_embedding = np.array(input_embedding, dtype='float32')
 
         print("input_embedding shape:", input_embedding.shape)
 

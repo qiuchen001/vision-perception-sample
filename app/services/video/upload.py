@@ -137,8 +137,8 @@ class UploadVideoService:
 
                 # 准备数据
                 m_ids.append(str(uuid.uuid4()))
-                embeddings.append(embedding[0].detach().cpu().numpy().tolist())
-                # embeddings.append(embedding)
+                # embeddings.append(embedding[0].detach().cpu().numpy().tolist())
+                embeddings.append(embedding)
                 paths.append(video_url)
 
                 # 正确计算时间戳（秒）

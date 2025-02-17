@@ -1,11 +1,12 @@
 import os
-from typing import Optional
+from typing import Optional, List, Tuple
 import torch
 # import cn_clip.clip as clip
 import cn_clip.clip as clip
 from cn_clip.clip import load_from_name, available_models
 from PIL import Image
 from config import Config
+from app.utils.embedding_base import EmbeddingBase
 
 
 # # 从视频中提取帧，并跳过指定数量的帧。
@@ -56,56 +57,36 @@ from config import Config
 #         print(f"Error processing video {video_path}: {e}")
 
 
-class ClipEmbedding:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
+class ClipEmbedding(EmbeddingBase):
+    """CN-CLIP模型实现"""
+    
     def __init__(self):
-        self.model, self.processor = load_from_name(
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model, self.processor = clip.load_from_name(
             name=Config.CN_CLIP_MODEL_PATH,
             device=self.device,
-            vision_model_name="ViT-L-14-336",
+            vision_model_name="ViT-L-14-336", 
             text_model_name="RoBERTa-wwm-ext-base-chinese",
             input_resolution=336)
         self.model.eval()
         self.tokenizer = clip.tokenize
-
-    def probs(self, image: Image):
+        
+    def embedding_image(self, image: Image.Image) -> List[float]:
         process_image = self.processor(image).unsqueeze(0).to(self.device)
-        text = self.tokenizer(["a diagram", "a dog", "a cat"]).to(self.device)
-
         with torch.no_grad():
-            logits_per_image, logits_per_text = self.model(process_image, text)
-            probs = logits_per_image.softmax(dim=-1).cpu().numpy()
-
-        print("Label probs:", probs)
-
-    def match(self, image: Image, desc: str):
-        process_image = self.processor(image).unsqueeze(0).to(self.device)
-        text = self.tokenizer([desc]).to(self.device)
-
+            image_features = self.model.encode_image(process_image)
+            return image_features[0].detach().cpu().numpy().tolist()
+            
+    def embedding_text(self, text: str) -> List[float]:
+        text = self.tokenizer([text]).to(self.device)
         with torch.no_grad():
-            logits_per_image, logits_per_text = self.model(process_image, text)
-            similarity = str(logits_per_image)[9:13]
-            res = float(similarity)
-            return res
-
-    def embedding_image(self, image: Image):
-        process_image = self.processor(image).unsqueeze(0).to(self.device)
-        image_features = self.model.encode_image(process_image)
-        return image_features
-
-    def embedding_text(self, text: str):
-        text = self.tokenizer([text]).to(self.device)
-        text_features = self.model.encode_text(text)
-        return text_features
-
-    def embedding(self, image: Image, text: str):
-        process_image = self.processor(image).unsqueeze(0).to(self.device)
-        text = self.tokenizer([text]).to(self.device)
-
-        image_features = self.model.encode_image(process_image)
-        text_features = self.model.encode_text(text)
-        return image_features, text_features
+            text_features = self.model.encode_text(text)
+            return text_features[0].detach().cpu().numpy().tolist()
+            
+    def embedding(self, image: Image.Image, text: str) -> Tuple[List[float], List[float]]:
+        img_emb = self.embedding_image(image)
+        txt_emb = self.embedding_text(text)
+        return img_emb, txt_emb
 
 
 clip_embedding = ClipEmbedding()
@@ -120,7 +101,7 @@ if __name__ == "__main__":
     # print(match)
 
     image_embeddings = clip_embedding.embedding_image(pil_image)
-    print(len(image_embeddings[0]))
+    print(len(image_embeddings))
 
     # res = image_embeddings[0].detach().numpy().tolist()
     #
