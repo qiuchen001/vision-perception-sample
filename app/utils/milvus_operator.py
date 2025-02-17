@@ -7,6 +7,7 @@ import os
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 from pymilvus import connections, db, Collection, utility
+from pymilvus.orm.mutation import MutationResult
 
 # 加载环境变量
 load_dotenv()
@@ -88,7 +89,7 @@ class MilvusOperator:
             cls._instances[instance_key] = cls(database, collection, metric_type, **kwargs)
         return cls._instances[instance_key]
 
-    def insert_data(self, data: List[Dict[str, Any]]) -> None:
+    def insert_data(self, data: List[Dict[str, Any]]) -> MutationResult:
         """
         插入数据到集合。
 
@@ -97,7 +98,8 @@ class MilvusOperator:
         """
         try:
             collection = Collection(self.coll_name)
-            collection.insert(data)
+            res = collection.insert(data)
+            return res
         except Exception as e:
             raise Exception(f"插入数据失败: {str(e)}")
 
