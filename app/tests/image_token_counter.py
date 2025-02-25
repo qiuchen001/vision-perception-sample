@@ -46,7 +46,7 @@ def smart_resize(
 
 
 # 将xxx/test.png替换为你本地的图像路径
-h_bar, w_bar = smart_resize("./这是一条城市街道，有汽车、人行横道、行人和红色交通灯.jpg")
+h_bar, w_bar = smart_resize("./first_frame.png", vl_high_resolution_images=True)
 print(f"缩放后的图像尺寸为：高度为{h_bar}，宽度为{w_bar}")
 
 # 计算图像的Token数：总像素除以28 * 28
