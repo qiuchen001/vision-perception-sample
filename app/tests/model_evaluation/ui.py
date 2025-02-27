@@ -233,41 +233,53 @@ def evaluate_current_video(video: Dict):
     with col2:
         # 少打标签补充区域
         with st.container():
-            # st.markdown("---")
             st.markdown("### 少打标签补充")
-
+            
             # 获取所有可用标签
             all_tags = get_all_available_tags()
-            
-            # 创建标签选择区
             missed_tags = []  # 记录少打的标签
             
             # 使用expander为每个大类创建可折叠区域
             for category, category_info in all_tags.items():
                 with st.expander(f"{category} ({category_info['description']})"):
                     # 显示每个子类别
-                    for main_tag, descriptions in category_info['tags'].items():
-                        if main_tag not in current_tags:
-                            st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
-                            
-                            # 显示主标签和其描述
-                            container = st.container()
-                            if container.checkbox(main_tag, key=f"missed_tag_{main_tag}"):
-                                missed_tags.append(main_tag)
+                    for main_tag, sub_items in category_info['tags'].items():
+                        # 对于道路环境类别，特殊处理
+                        if category == "四、道路环境":
+                            # 显示分组标题
+                            st.markdown(f"**{main_tag}**")
+                            # 显示具体标签项
+                            for sub_tag in sub_items:
+                                if sub_tag not in current_tags:
+                                    st.markdown('<div style="margin: 10px 0; padding-left: 20px;">', unsafe_allow_html=True)
+                                    
+                                    # 显示具体标签和选择框
+                                    if st.checkbox(sub_tag, key=f"missed_tag_{sub_tag}"):
+                                        missed_tags.append(sub_tag)
+                                    
+                                    st.markdown('</div>', unsafe_allow_html=True)
+                        else:
+                            # 其他类别保持原有逻辑
+                            if main_tag not in current_tags:
+                                st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
                                 
-                                # 只有选中标签时才显示时间输入
-                                if main_tag.startswith(("D", "P")):
-                                    st.number_input("时间点(秒)", 0, key=f"time_{main_tag}")
-                                elif main_tag.startswith("V"):
-                                    st.number_input("持续时间(秒)", 0, key=f"duration_{main_tag}")
-                            
-                            # 显示描述作为帮助信息
-                            if descriptions:
-                                st.markdown("*标签说明:*")
-                                for desc in descriptions:
-                                    st.markdown(f"- {desc}")
-                            
-                            st.markdown('</div>', unsafe_allow_html=True)
+                                # 显示主标签和其描述
+                                if st.checkbox(main_tag, key=f"missed_tag_{main_tag}"):
+                                    missed_tags.append(main_tag)
+                                    
+                                    # 只有选中标签时才显示时间输入
+                                    if main_tag.startswith(("D", "P")):
+                                        st.number_input("时间点(秒)", 0, key=f"time_{main_tag}")
+                                    elif main_tag.startswith("V"):
+                                        st.number_input("持续时间(秒)", 0, key=f"duration_{main_tag}")
+                                
+                                # 显示描述作为帮助信息
+                                if sub_items:
+                                    st.markdown("*标签说明:*")
+                                    for desc in sub_items:
+                                        st.markdown(f"- {desc}")
+                                
+                                st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
     
     # 评测结果摘要区域
