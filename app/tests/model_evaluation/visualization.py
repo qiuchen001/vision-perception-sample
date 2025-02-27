@@ -301,11 +301,18 @@ def generate_evaluation_report(jsonl_path, output_path):
     fig_accuracy.write_html(f"{output_path}/tag_accuracy.html")
     fig_recall.write_html(f"{output_path}/tag_recall.html")
     
+    # 添加标签格式处理函数
+    def clean_tag_format(tag):
+        """清理标签格式，去除前缀"""
+        if ': ' in tag:
+            return tag.split(': ')[1]
+        return tag
+    
     # 生成详细的标签分析报告
     tag_analysis = []
     for data in tag_data:
         tag_analysis.append({
-            '标签': data['tag'],
+            '标签': clean_tag_format(data['tag']),
             '样本量': data['total'],
             '准确率': f"{data['accuracy']:.1f}%",
             '召回率': f"{data['recall_rate']:.1f}%",
@@ -317,7 +324,7 @@ def generate_evaluation_report(jsonl_path, output_path):
     # 更新报告内容
     report = {
         'total_statistics': total_stats,
-        'tag_statistics': tag_stats,
+        'tag_statistics': {clean_tag_format(k): v for k, v in tag_stats.items()},
         'tag_analysis': tag_analysis
     }
     

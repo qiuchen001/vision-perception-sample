@@ -168,13 +168,19 @@ def save_evaluation_record(video: Dict, evaluation_results: Dict):
     except Exception as e:
         st.error(f"保存评测记录失败: {str(e)}")
 
+def clean_tag_format(tag):
+    """清理标签格式，去除前缀"""
+    if ': ' in tag:
+        return tag.split(': ')[1]
+    return tag
+
 def evaluate_current_video(video: Dict):
     """评测当前视频"""
     st.subheader("评测区域")
     st.markdown("---")
     
     # 获取当前视频的标签，确保返回列表
-    current_tags = video.get('tags', []) or []
+    current_tags = [clean_tag_format(tag) for tag in video.get('tags', [])] or []
     video_id = video.get('m_id', '')  # 获取视频ID
     
     # 创建标签计数器，用于处理重复标签
@@ -250,28 +256,30 @@ def evaluate_current_video(video: Dict):
                             st.markdown(f"**{main_tag}**")
                             # 显示具体标签项
                             for sub_tag in sub_items:
-                                if sub_tag not in current_tags:
+                                clean_sub_tag = clean_tag_format(sub_tag)
+                                if clean_sub_tag not in current_tags:
                                     st.markdown('<div style="margin: 10px 0; padding-left: 20px;">', unsafe_allow_html=True)
                                     
                                     # 显示具体标签和选择框
-                                    if st.checkbox(sub_tag, key=f"missed_tag_{sub_tag}"):
-                                        missed_tags.append(sub_tag)
+                                    if st.checkbox(clean_sub_tag, key=f"missed_tag_{clean_sub_tag}"):
+                                        missed_tags.append(clean_sub_tag)
                                     
                                     st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             # 其他类别保持原有逻辑
-                            if main_tag not in current_tags:
+                            clean_main_tag = clean_tag_format(main_tag)
+                            if clean_main_tag not in current_tags:
                                 st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
                                 
                                 # 显示主标签和其描述
-                                if st.checkbox(main_tag, key=f"missed_tag_{main_tag}"):
-                                    missed_tags.append(main_tag)
+                                if st.checkbox(clean_main_tag, key=f"missed_tag_{clean_main_tag}"):
+                                    missed_tags.append(clean_main_tag)
                                     
                                     # 只有选中标签时才显示时间输入
-                                    if main_tag.startswith(("D", "P")):
-                                        st.number_input("时间点(秒)", 0, key=f"time_{main_tag}")
-                                    elif main_tag.startswith("V"):
-                                        st.number_input("持续时间(秒)", 0, key=f"duration_{main_tag}")
+                                    if clean_main_tag.startswith(("D", "P")):
+                                        st.number_input("时间点(秒)", 0, key=f"time_{clean_main_tag}")
+                                    elif clean_main_tag.startswith("V"):
+                                        st.number_input("持续时间(秒)", 0, key=f"duration_{clean_main_tag}")
                                 
                                 # 显示描述作为帮助信息
                                 if sub_items:
