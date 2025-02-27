@@ -18,6 +18,10 @@ def show_visualization():
         # 生成报告
         report = generate_evaluation_report(jsonl_path, output_path)
         
+        if report['total_statistics']['total_videos'] == 0:
+            st.warning("暂无评测数据。请先进行模型评测，生成评测数据后再查看报告。")
+            return
+            
         # 显示总体统计
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
@@ -32,10 +36,11 @@ def show_visualization():
             st.metric("遗漏标签数", report['total_statistics']['missed_tags'])
         
         # 显示准确率
-        st.metric(
-            "总体准确率", 
-            f"{(report['total_statistics']['correct_tags']/report['total_statistics']['total_tags']*100):.1f}%"
-        )
+        if report['total_statistics']['total_tags'] > 0:
+            st.metric(
+                "总体准确率", 
+                f"{(report['total_statistics']['correct_tags']/report['total_statistics']['total_tags']*100):.1f}%"
+            )
         
         # 显示图表
         st.subheader("评测结果可视化")
@@ -61,7 +66,10 @@ def show_visualization():
             )
     
     except Exception as e:
-        st.error(f"生成报告时发生错误: {str(e)}")
+        if str(e) == "division by zero":
+            st.warning("暂无评测数据。请先进行模型评测，生成评测数据后再查看报告。")
+        else:
+            st.error(f"生成报告时发生错误: {str(e)}")
 
 if __name__ == "__main__":
     st.set_page_config(

@@ -71,6 +71,21 @@ def calculate_statistics(records):
 def generate_evaluation_report(jsonl_path, output_path):
     """生成评测报告"""
     records = load_evaluation_records(jsonl_path)
+    
+    # 检查是否有评测记录
+    if not records:
+        return {
+            'total_statistics': {
+                'total_videos': 0,
+                'total_tags': 0,
+                'correct_tags': 0,
+                'wrong_tags': 0,
+                'missed_tags': 0
+            },
+            'tag_statistics': {},
+            'tag_analysis': []
+        }
+    
     total_stats, tag_stats = calculate_statistics(records)
     
     # 生成总体准确率饼图
