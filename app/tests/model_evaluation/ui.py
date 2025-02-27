@@ -179,9 +179,14 @@ def evaluate_current_video(video: Dict):
     st.subheader("评测区域")
     st.markdown("---")
     
-    # 获取当前视频的标签，确保返回列表
-    current_tags = [clean_tag_format(tag) for tag in video.get('tags', [])] or []
-    video_id = video.get('m_id', '')  # 获取视频ID
+    # 安全地获取标签列表
+    if not video:
+        current_tags = []
+    else:
+        tags = video.get('tags') or []
+        current_tags = [clean_tag_format(tag) for tag in tags]
+    
+    video_id = video.get('m_id', '') if video else ''  # 安全地获取视频ID
     
     # 创建标签计数器，用于处理重复标签
     tag_counter = {}

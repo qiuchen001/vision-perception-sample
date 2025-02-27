@@ -31,46 +31,56 @@ def calculate_statistics(records):
     })
     
     for record in records:
-        eval_results = record['evaluation_results']
-        original_tags = record['original_tags']  # 模型打的标签
+        eval_results = record.get('evaluation_results', {})
+        original_tags = record.get('original_tags', []) or []  # 确保是列表
         
         # 累计总数
-        total_stats['total_tags'] += eval_results['total_tags']
-        total_stats['correct_tags'] += eval_results['correct_tags']
+        total_stats['total_tags'] += eval_results.get('total_tags', 0)
+        total_stats['correct_tags'] += eval_results.get('correct_tags', 0)
         total_stats['wrong_tags'] += len(eval_results.get('wrong_tags', []))
         total_stats['missed_tags'] += len(eval_results.get('missed_tags', []))
         
         # 统计模型打的标签数
         for tag in original_tags:
-            tag_stats[tag]['model_tags'] += 1
-            tag_stats[tag]['total'] += 1
+            if tag:  # 确保标签不是None
+                tag_stats[tag]['model_tags'] += 1
+                tag_stats[tag]['total'] += 1
         
         # 统计错误标签
-        for wrong_tag in eval_results.get('wrong_tags', []):
+        wrong_tags = eval_results.get('wrong_tags', []) or []
+        for wrong_tag in wrong_tags:
             if isinstance(wrong_tag, dict) and 'tag' in wrong_tag:
                 tag = wrong_tag['tag']
             else:
                 tag = wrong_tag
-            tag_stats[tag]['wrong'] += 1
+            if tag:  # 确保标签不是None
+                tag_stats[tag]['wrong'] += 1
             
         # 统计遗漏标签
-        for missed_tag in eval_results.get('missed_tags', []):
+        missed_tags = eval_results.get('missed_tags', []) or []
+        for missed_tag in missed_tags:
             if isinstance(missed_tag, dict) and 'tag' in missed_tag:
                 tag = missed_tag['tag']
             else:
                 tag = missed_tag
-            tag_stats[tag]['missed'] += 1
-            tag_stats[tag]['total'] += 1  # 增加总数，因为这是应该有的标签
+            if tag:  # 确保标签不是None
+                tag_stats[tag]['missed'] += 1
+                tag_stats[tag]['total'] += 1  # 增加总数，因为这是应该有的标签
         
         # 计算正确标签数
         for tag in tag_stats:
-            tag_stats[tag]['correct'] = tag_stats[tag]['model_tags'] - tag_stats[tag]['wrong']
+            if tag:  # 确保标签不是None
+                tag_stats[tag]['correct'] = tag_stats[tag]['model_tags'] - tag_stats[tag]['wrong']
     
     return total_stats, dict(tag_stats)
 
 def generate_evaluation_report(jsonl_path, output_path):
     """生成评测报告"""
-    records = load_evaluation_records(jsonl_path)
+    try:
+        records = load_evaluation_records(jsonl_path)
+    except Exception as e:
+        print(f"加载评测记录失败: {str(e)}")
+        records = []
     
     # 检查是否有评测记录
     if not records:
@@ -86,252 +96,268 @@ def generate_evaluation_report(jsonl_path, output_path):
             'tag_analysis': []
         }
     
-    total_stats, tag_stats = calculate_statistics(records)
-    
-    # 生成总体准确率饼图
-    fig_overall = go.Figure(data=[
-        go.Pie(
-            labels=['正确标签', '错误标签', '遗漏标签'],
-            values=[total_stats['correct_tags'], 
-                   total_stats['wrong_tags'],
-                   total_stats['missed_tags']],
-            hole=.3,
-            marker=dict(
-                colors=['#2ecc71',  # 绿色表示正确
-                       '#e74c3c',   # 红色表示错误
-                       '#f1c40f']   # 黄色表示遗漏
-            ),
-            textinfo='label+percent',  # 显示标签和百分比
-            textposition='inside',     # 文字位置
-            insidetextorientation='radial'  # 文字方向
+    try:
+        total_stats, tag_stats = calculate_statistics(records)
+        
+        # 生成总体准确率饼图
+        fig_overall = go.Figure(data=[
+            go.Pie(
+                labels=['正确标签', '错误标签', '遗漏标签'],
+                values=[total_stats['correct_tags'], 
+                       total_stats['wrong_tags'],
+                       total_stats['missed_tags']],
+                hole=.3,
+                marker=dict(
+                    colors=['#2ecc71',  # 绿色表示正确
+                           '#e74c3c',   # 红色表示错误
+                           '#f1c40f']   # 黄色表示遗漏
+                ),
+                textinfo='label+percent',  # 显示标签和百分比
+                textposition='inside',     # 文字位置
+                insidetextorientation='radial'  # 文字方向
+            )
+        ])
+        
+        # 更新饼图布局
+        fig_overall.update_layout(
+            title={
+                'text': '标签评测结果分布',
+                'y': 0.95,
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'
+            },
+            showlegend=True,
+            legend={
+                'orientation': 'h',
+                'yanchor': 'bottom',
+                'y': -0.1,
+                'xanchor': 'center',
+                'x': 0.5
+            },
+            width=600,
+            height=500,
+            margin=dict(t=80, b=80, l=40, r=40)
         )
-    ])
-    
-    # 更新饼图布局
-    fig_overall.update_layout(
-        title={
-            'text': '标签评测结果分布',
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        showlegend=True,
-        legend={
-            'orientation': 'h',
-            'yanchor': 'bottom',
-            'y': -0.1,
-            'xanchor': 'center',
-            'x': 0.5
-        },
-        width=600,
-        height=500,
-        margin=dict(t=80, b=80, l=40, r=40)
-    )
-    
-    fig_overall.write_html(f"{output_path}/overall_accuracy.html")
-    
-    # 准备标签数据
-    tag_data = []
-    for tag, stats in tag_stats.items():
-        # 计算准确率
-        accuracy = (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0
         
-        # 计算召回率
-        # 召回率分母 = 模型打标签数 - 错打数 + 漏打数
-        recall_denominator = stats['model_tags'] - stats['wrong'] + stats['missed']
-        # 召回率分子 = 模型打标签数 - 错打数
-        recall_numerator = stats['model_tags'] - stats['wrong']
-        recall_rate = (recall_numerator / recall_denominator * 100) if recall_denominator > 0 else 0
+        fig_overall.write_html(f"{output_path}/overall_accuracy.html")
         
-        tag_data.append({
-            'tag': tag,
-            'accuracy': accuracy,
-            'recall_rate': recall_rate,  # 改用recall_rate替代之前的miss_rate
-            'total': stats['total'],
-            'correct': stats['correct'],
-            'wrong': stats['wrong'],
-            'missed': stats['missed'],
-            'model_tags': stats['model_tags']
-        })
-    
-    # 按总样本量排序
-    tag_data.sort(key=lambda x: x['total'], reverse=True)
-    
-    # 提取绘图所需的数据
-    tags = [d['tag'] for d in tag_data]
-    recall_rates = [d['recall_rate'] for d in tag_data]
-    sample_sizes = [d['total'] for d in tag_data]
-    
-    # 生成准确率分析图表
-    fig_accuracy = go.Figure()
-    
-    # 添加准确率条形图
-    fig_accuracy.add_trace(go.Bar(
-        x=[d['tag'] for d in tag_data],
-        y=[d['accuracy'] for d in tag_data],
-        name='准确率',
-        marker_color='#2ecc71',
-        width=0.5  # 设置条形宽度
-    ))
-    
-    # 添加样本量散点图
-    fig_accuracy.add_trace(go.Scatter(
-        x=[d['tag'] for d in tag_data],
-        y=[d['total'] for d in tag_data],
-        name='样本量',
-        yaxis='y2',
-        mode='markers+text',
-        marker=dict(size=12, color='#3498db'),
-        text=[d['total'] for d in tag_data],
-        textposition='top center'
-    ))
-    
-    # 更新准确率图表布局
-    fig_accuracy.update_layout(
-        title={
-            'text': '标签准确率分析',
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        xaxis=dict(
-            title='标签类型',
-            tickangle=45
-        ),
-        yaxis=dict(
-            title='准确率 (%)',
-            side='left',
-            range=[0, 100],
-            gridcolor='lightgray'
-        ),
-        yaxis2=dict(
-            title='样本量',
-            side='right',
-            overlaying='y',
-            showgrid=False
-        ),
-        showlegend=True,
-        legend={
-            'orientation': 'h',
-            'yanchor': 'bottom',
-            'y': -0.2,
-            'xanchor': 'center',
-            'x': 0.5
-        },
-        height=800,
-        margin=dict(t=100, b=150, l=60, r=60),
-        plot_bgcolor='white',
-        bargap=0.3  # 调整条形图间距
-    )
-    
-    # 创建召回率分析图表
-    fig_recall = go.Figure()
-    
-    # 添加召回率条形图
-    fig_recall.add_trace(go.Bar(
-        x=[d['tag'] for d in tag_data],
-        y=[d['recall_rate'] for d in tag_data],
-        name='召回率',
-        marker_color='#f1c40f',
-        width=0.5
-    ))
-    
-    # 添加样本量散点图
-    fig_recall.add_trace(go.Scatter(
-        x=[d['tag'] for d in tag_data],
-        y=[d['total'] for d in tag_data],
-        name='样本量',
-        yaxis='y2',
-        mode='markers+text',
-        marker=dict(size=12, color='#3498db'),
-        text=[d['total'] for d in tag_data],
-        textposition='top center'
-    ))
-    
-    # 更新召回率图表布局
-    fig_recall.update_layout(
-        title={
-            'text': '标签召回率分析',
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        xaxis=dict(
-            title='标签类型',
-            tickangle=45
-        ),
-        yaxis=dict(
-            title='召回率 (%)',
-            side='left',
-            range=[0, 100],
-            gridcolor='lightgray'
-        ),
-        yaxis2=dict(
-            title='样本量',
-            side='right',
-            overlaying='y',
-            showgrid=False
-        ),
-        showlegend=True,
-        legend=dict(
-            orientation='h',      # 水平布局
-            yanchor='bottom',    # 固定在底部
-            y=-0.3,             # 向下移动位置，给两行图例留出空间
-            xanchor='center',    # 居中对齐
-            x=0.5,              # 居中位置
-            traceorder='normal', # 保持图例顺序
-            itemwidth=50,        # 设置图例项的宽度
-            itemsizing='constant'# 保持图例项大小一致
-        ),
-        height=800,
-        margin=dict(
-            t=100,   # 顶部边距
-            b=180,   # 增加底部边距，为两行图例留出空间
-            l=60,    # 左边距
-            r=60     # 右边距
-        ),
-        plot_bgcolor='white',
-        bargap=0.3  # 调整条形图间距
-    )
-    
-    # 保存图表
-    fig_accuracy.write_html(f"{output_path}/tag_accuracy.html")
-    fig_recall.write_html(f"{output_path}/tag_recall.html")
-    
-    # 添加标签格式处理函数
-    def clean_tag_format(tag):
-        """清理标签格式，去除前缀"""
-        if ': ' in tag:
-            return tag.split(': ')[1]
-        return tag
-    
-    # 生成详细的标签分析报告
-    tag_analysis = []
-    for data in tag_data:
-        tag_analysis.append({
-            '标签': clean_tag_format(data['tag']),
-            '样本量': data['total'],
-            '准确率': f"{data['accuracy']:.1f}%",
-            '召回率': f"{data['recall_rate']:.1f}%",
-            '正确数': data['correct'],
-            '错误数': data['wrong'],
-            '漏打数': data['missed']
-        })
-    
-    # 更新报告内容
-    report = {
-        'total_statistics': total_stats,
-        'tag_statistics': {clean_tag_format(k): v for k, v in tag_stats.items()},
-        'tag_analysis': tag_analysis
-    }
-    
-    with open(f"{output_path}/statistics_report.json", 'w', encoding='utf-8') as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
-    
-    return report
+        # 准备标签数据
+        tag_data = []
+        for tag, stats in tag_stats.items():
+            if not tag:  # 跳过None或空标签
+                continue
+                
+            # 计算准确率
+            accuracy = (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0
+            
+            # 计算召回率
+            recall_denominator = stats['model_tags'] - stats['wrong'] + stats['missed']
+            recall_numerator = stats['model_tags'] - stats['wrong']
+            recall_rate = (recall_numerator / recall_denominator * 100) if recall_denominator > 0 else 0
+            
+            tag_data.append({
+                'tag': tag,
+                'accuracy': accuracy,
+                'recall_rate': recall_rate,
+                'total': stats['total'],
+                'correct': stats['correct'],
+                'wrong': stats['wrong'],
+                'missed': stats['missed'],
+                'model_tags': stats['model_tags']
+            })
+        
+        # 按总样本量排序
+        tag_data.sort(key=lambda x: x['total'], reverse=True)
+        
+        # 提取绘图所需的数据
+        tags = [d['tag'] for d in tag_data]
+        recall_rates = [d['recall_rate'] for d in tag_data]
+        sample_sizes = [d['total'] for d in tag_data]
+        
+        # 生成准确率分析图表
+        fig_accuracy = go.Figure()
+        
+        # 添加准确率条形图
+        fig_accuracy.add_trace(go.Bar(
+            x=[d['tag'] for d in tag_data],
+            y=[d['accuracy'] for d in tag_data],
+            name='准确率',
+            marker_color='#2ecc71',
+            width=0.5  # 设置条形宽度
+        ))
+        
+        # 添加样本量散点图
+        fig_accuracy.add_trace(go.Scatter(
+            x=[d['tag'] for d in tag_data],
+            y=[d['total'] for d in tag_data],
+            name='样本量',
+            yaxis='y2',
+            mode='markers+text',
+            marker=dict(size=12, color='#3498db'),
+            text=[d['total'] for d in tag_data],
+            textposition='top center'
+        ))
+        
+        # 更新准确率图表布局
+        fig_accuracy.update_layout(
+            title={
+                'text': '标签准确率分析',
+                'y': 0.95,
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'
+            },
+            xaxis=dict(
+                title='标签类型',
+                tickangle=45
+            ),
+            yaxis=dict(
+                title='准确率 (%)',
+                side='left',
+                range=[0, 100],
+                gridcolor='lightgray'
+            ),
+            yaxis2=dict(
+                title='样本量',
+                side='right',
+                overlaying='y',
+                showgrid=False
+            ),
+            showlegend=True,
+            legend={
+                'orientation': 'h',
+                'yanchor': 'bottom',
+                'y': -0.2,
+                'xanchor': 'center',
+                'x': 0.5
+            },
+            height=800,
+            margin=dict(t=100, b=150, l=60, r=60),
+            plot_bgcolor='white',
+            bargap=0.3  # 调整条形图间距
+        )
+        
+        # 创建召回率分析图表
+        fig_recall = go.Figure()
+        
+        # 添加召回率条形图
+        fig_recall.add_trace(go.Bar(
+            x=[d['tag'] for d in tag_data],
+            y=[d['recall_rate'] for d in tag_data],
+            name='召回率',
+            marker_color='#f1c40f',
+            width=0.5
+        ))
+        
+        # 添加样本量散点图
+        fig_recall.add_trace(go.Scatter(
+            x=[d['tag'] for d in tag_data],
+            y=[d['total'] for d in tag_data],
+            name='样本量',
+            yaxis='y2',
+            mode='markers+text',
+            marker=dict(size=12, color='#3498db'),
+            text=[d['total'] for d in tag_data],
+            textposition='top center'
+        ))
+        
+        # 更新召回率图表布局
+        fig_recall.update_layout(
+            title={
+                'text': '标签召回率分析',
+                'y': 0.95,
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'
+            },
+            xaxis=dict(
+                title='标签类型',
+                tickangle=45
+            ),
+            yaxis=dict(
+                title='召回率 (%)',
+                side='left',
+                range=[0, 100],
+                gridcolor='lightgray'
+            ),
+            yaxis2=dict(
+                title='样本量',
+                side='right',
+                overlaying='y',
+                showgrid=False
+            ),
+            showlegend=True,
+            legend=dict(
+                orientation='h',      # 水平布局
+                yanchor='bottom',    # 固定在底部
+                y=-0.3,             # 向下移动位置，给两行图例留出空间
+                xanchor='center',    # 居中对齐
+                x=0.5,              # 居中位置
+                traceorder='normal', # 保持图例顺序
+                itemwidth=50,        # 设置图例项的宽度
+                itemsizing='constant'# 保持图例项大小一致
+            ),
+            height=800,
+            margin=dict(
+                t=100,   # 顶部边距
+                b=180,   # 增加底部边距，为两行图例留出空间
+                l=60,    # 左边距
+                r=60     # 右边距
+            ),
+            plot_bgcolor='white',
+            bargap=0.3  # 调整条形图间距
+        )
+        
+        # 保存图表
+        fig_accuracy.write_html(f"{output_path}/tag_accuracy.html")
+        fig_recall.write_html(f"{output_path}/tag_recall.html")
+        
+        # 添加标签格式处理函数
+        def clean_tag_format(tag):
+            """清理标签格式，去除前缀"""
+            if ': ' in tag:
+                return tag.split(': ')[1]
+            return tag
+        
+        # 生成详细的标签分析报告
+        tag_analysis = []
+        for data in tag_data:
+            tag_analysis.append({
+                '标签': clean_tag_format(data['tag']),
+                '样本量': data['total'],
+                '准确率': f"{data['accuracy']:.1f}%",
+                '召回率': f"{data['recall_rate']:.1f}%",
+                '正确数': data['correct'],
+                '错误数': data['wrong'],
+                '漏打数': data['missed']
+            })
+        
+        # 更新报告内容
+        report = {
+            'total_statistics': total_stats,
+            'tag_statistics': tag_stats,
+            'tag_analysis': tag_analysis
+        }
+        
+        with open(f"{output_path}/statistics_report.json", 'w', encoding='utf-8') as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        
+        return report
+        
+    except Exception as e:
+        print(f"生成报告时发生错误: {str(e)}")
+        return {
+            'total_statistics': {
+                'total_videos': len(records),
+                'total_tags': 0,
+                'correct_tags': 0,
+                'wrong_tags': 0,
+                'missed_tags': 0
+            },
+            'tag_statistics': {},
+            'tag_analysis': []
+        }
 
 if __name__ == "__main__":
     jsonl_path = "./evaluation_data/evaluation_records.jsonl"
