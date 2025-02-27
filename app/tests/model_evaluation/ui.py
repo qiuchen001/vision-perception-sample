@@ -6,6 +6,7 @@ from typing import Dict, List
 import json
 import os
 from datetime import datetime
+from visualization_app import show_visualization
 
 def init_session_state():
     """初始化session state"""
@@ -27,14 +28,22 @@ def init_session_state():
         
     if 'video_cache' not in st.session_state:
         st.session_state.video_cache = []
+        
+    if 'paginator' not in st.session_state:
+        st.session_state.paginator = get_video_paginator(page_size=100)
 
 def load_current_video():
     """加载当前视频"""
     try:
-        # 如果缓存为空，加载第一页数据
-        if not st.session_state.video_cache:
-            paginator = get_video_paginator(page_size=100)
-            st.session_state.video_cache = next(paginator)
+        # 如果当前索引超出缓存范围，尝试加载下一页
+        while st.session_state.current_video_index >= len(st.session_state.video_cache):
+            try:
+                next_page = next(st.session_state.paginator)
+                if not next_page:  # 如果没有更多数据
+                    return None
+                st.session_state.video_cache.extend(next_page)
+            except StopIteration:  # 如果没有更多页
+                return None
             
         if 0 <= st.session_state.current_video_index < len(st.session_state.video_cache):
             return st.session_state.video_cache[st.session_state.current_video_index]
@@ -344,7 +353,20 @@ def display_navigation():
         st.write(f"当前第 {st.session_state.current_video_index + 1} 个视频")
         
     with col3:
-        if st.button("下一个", disabled=st.session_state.current_video_index >= len(st.session_state.video_cache) - 1):
+        # 尝试预加载下一页，检查是否还有更多视频
+        has_more = False
+        if st.session_state.current_video_index >= len(st.session_state.video_cache) - 1:
+            try:
+                # 临时获取下一页数据来检查是否还有更多
+                next_page = next(st.session_state.paginator)
+                if next_page:
+                    has_more = True
+            except StopIteration:
+                has_more = False
+        else:
+            has_more = True
+            
+        if st.button("下一个", disabled=not has_more):
             # 清除评测状态
             clear_evaluation_states()
             # 更新视频索引
@@ -392,7 +414,22 @@ def display_evaluation_stats():
         st.sidebar.metric("累计少打标签数", st.session_state.evaluation_results['missed_tags'])
 
 def main():
+    # 设置页面配置必须是第一个命令
     st.set_page_config(page_title="Qwen模型评测工具", layout="wide")
+    
+    # 添加页面选择
+    page = st.sidebar.radio(
+        "选择功能",
+        ["评测界面", "评测报告"],
+        index=0
+    )
+    
+    if page == "评测界面":
+        show_evaluation_ui()
+    else:
+        show_visualization()
+
+def show_evaluation_ui():
     st.title("Qwen视觉模型评测工具")
     
     # 初始化session state
