@@ -158,6 +158,11 @@ def generate_evaluation_report(jsonl_path, output_path):
     # 按总样本量排序
     tag_data.sort(key=lambda x: x['total'], reverse=True)
     
+    # 提取绘图所需的数据
+    tags = [d['tag'] for d in tag_data]
+    recall_rates = [d['recall_rate'] for d in tag_data]
+    sample_sizes = [d['total'] for d in tag_data]
+    
     # 生成准确率分析图表
     fig_accuracy = go.Figure()
     
@@ -221,14 +226,14 @@ def generate_evaluation_report(jsonl_path, output_path):
         bargap=0.3  # 调整条形图间距
     )
     
-    # 生成漏打率分析图表
+    # 创建召回率分析图表
     fig_recall = go.Figure()
     
     # 添加召回率条形图
     fig_recall.add_trace(go.Bar(
         x=[d['tag'] for d in tag_data],
-        y=[d['recall_rate'] for d in tag_data],  # 使用recall_rate
-        name='召回率',  # 更新名称
+        y=[d['recall_rate'] for d in tag_data],
+        name='召回率',
         marker_color='#f1c40f',
         width=0.5
     ))
@@ -245,10 +250,10 @@ def generate_evaluation_report(jsonl_path, output_path):
         textposition='top center'
     ))
     
-    # 更新漏打率图表布局
+    # 更新召回率图表布局
     fig_recall.update_layout(
         title={
-            'text': '标签召回率分析',  # 更新标题
+            'text': '标签召回率分析',
             'y': 0.95,
             'x': 0.5,
             'xanchor': 'center',
@@ -259,7 +264,7 @@ def generate_evaluation_report(jsonl_path, output_path):
             tickangle=45
         ),
         yaxis=dict(
-            title='召回率 (%)',  # 更新y轴标题
+            title='召回率 (%)',
             side='left',
             range=[0, 100],
             gridcolor='lightgray'
@@ -271,15 +276,23 @@ def generate_evaluation_report(jsonl_path, output_path):
             showgrid=False
         ),
         showlegend=True,
-        legend={
-            'orientation': 'h',
-            'yanchor': 'bottom',
-            'y': -0.2,
-            'xanchor': 'center',
-            'x': 0.5
-        },
+        legend=dict(
+            orientation='h',      # 水平布局
+            yanchor='bottom',    # 固定在底部
+            y=-0.3,             # 向下移动位置，给两行图例留出空间
+            xanchor='center',    # 居中对齐
+            x=0.5,              # 居中位置
+            traceorder='normal', # 保持图例顺序
+            itemwidth=50,        # 设置图例项的宽度
+            itemsizing='constant'# 保持图例项大小一致
+        ),
         height=800,
-        margin=dict(t=100, b=150, l=60, r=60),
+        margin=dict(
+            t=100,   # 顶部边距
+            b=180,   # 增加底部边距，为两行图例留出空间
+            l=60,    # 左边距
+            r=60     # 右边距
+        ),
         plot_bgcolor='white',
         bargap=0.3  # 调整条形图间距
     )
