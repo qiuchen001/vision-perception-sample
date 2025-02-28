@@ -266,7 +266,7 @@ def evaluate_current_video(video: Dict):
                                     st.markdown('<div style="margin: 10px 0; padding-left: 20px;">', unsafe_allow_html=True)
                                     
                                     # 显示具体标签和选择框
-                                    if st.checkbox(clean_sub_tag, key=f"missed_tag_{clean_sub_tag}"):
+                                    if st.checkbox(clean_sub_tag, key=f"missed_tag_{video_id}_{clean_sub_tag}"):
                                         missed_tags.append(clean_sub_tag)
                                     
                                     st.markdown('</div>', unsafe_allow_html=True)
@@ -277,14 +277,14 @@ def evaluate_current_video(video: Dict):
                                 st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
                                 
                                 # 显示主标签和其描述
-                                if st.checkbox(clean_main_tag, key=f"missed_tag_{clean_main_tag}"):
+                                if st.checkbox(clean_main_tag, key=f"missed_tag_{video_id}_{clean_main_tag}"):
                                     missed_tags.append(clean_main_tag)
                                     
                                     # 只有选中标签时才显示时间输入
                                     if clean_main_tag.startswith(("D", "P")):
-                                        st.number_input("时间点(秒)", 0, key=f"time_{clean_main_tag}")
+                                        st.number_input("时间点(秒)", 0, key=f"time_{video_id}_{clean_main_tag}")
                                     elif clean_main_tag.startswith("V"):
-                                        st.number_input("持续时间(秒)", 0, key=f"duration_{clean_main_tag}")
+                                        st.number_input("持续时间(秒)", 0, key=f"duration_{video_id}_{clean_main_tag}")
                                 
                                 # 显示描述作为帮助信息
                                 if sub_items:
@@ -361,6 +361,8 @@ def clear_evaluation_states():
     
     # 清除wrong_tags状态
     st.session_state.wrong_tags = []
+    # 清除missed_tags状态
+    st.session_state.missed_tags = []
 
 def display_navigation():
     """显示导航控制"""
