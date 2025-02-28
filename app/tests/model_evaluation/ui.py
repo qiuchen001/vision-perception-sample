@@ -404,16 +404,59 @@ def export_results():
     """导出评测结果"""
     results = st.session_state.evaluation_results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"evaluation_results_{timestamp}.json"
     
-    with open(filename, 'w', encoding='utf-8') as f:
+    # 生成评估报告数据
+    evaluation_report = {
+        "评估时间": timestamp,
+        "总体统计": {
+            "总视频数": 100,
+            "已评估视频数": results['processed_videos'],
+            "总标签数": results['total_tags'],
+            "正确标签数": results['correct_tags'],
+            "错误标签数": results['wrong_tags'],
+            "遗漏标签数": results['missed_tags']
+        },
+        "准确率分析": {
+            "标签准确率": f"{(results['correct_tags'] / results['total_tags'] * 100):.2f}%" if results['total_tags'] > 0 else "0%",
+            "错打率": f"{(results['wrong_tags'] / results['total_tags'] * 100):.2f}%" if results['total_tags'] > 0 else "0%",
+            "平均每视频错误标签数": f"{(results['wrong_tags'] / results['processed_videos']):.2f}" if results['processed_videos'] > 0 else "0",
+            "平均每视频遗漏标签数": f"{(results['missed_tags'] / results['processed_videos']):.2f}" if results['processed_videos'] > 0 else "0"
+        },
+        "标签分布": results.get('tag_distribution', {}),
+        "错误分析": {
+            "常见错误类型": results.get('error_cases', []),
+            "标签类型准确率": results.get('accuracy_by_type', {})
+        },
+        "评估建议": {
+            "模型改进方向": [
+                "提高对复杂场景的识别能力",
+                "优化对特定标签类型的识别",
+                "减少误报和漏报"
+            ],
+            "评估改进建议": [
+                "增加样本多样性",
+                "扩大评估数据集规模",
+                "细化错误类型分析"
+            ]
+        }
+    }
+    
+    # 保存评估报告
+    report_filename = f"evaluation_report_{timestamp}.json"
+    with open(report_filename, 'w', encoding='utf-8') as f:
+        json.dump(evaluation_report, f, ensure_ascii=False, indent=2)
+    
+    # 保存原始结果
+    results_filename = f"evaluation_results_{timestamp}.json"
+    with open(results_filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     
-    with open(filename, 'r', encoding='utf-8') as f:
+    # 提供下载按钮
+    with open(report_filename, 'r', encoding='utf-8') as f:
         st.download_button(
-            label="下载评测报告",
+            label="下载评估报告",
             data=f.read(),
-            file_name=filename,
+            file_name=report_filename,
             mime="application/json"
         )
 
@@ -488,6 +531,91 @@ def show_evaluation_ui():
             st.sidebar.button("导出报告", on_click=export_results)
     else:
         st.error("无法加载视频数据")
+
+def show_visualization():
+    st.title("评估报告可视化")
+    
+    # 显示可视化图表
+    from visualization import generate_evaluation_report
+    
+    # 确保目录存在
+    output_path = "./model_evaluation/reports"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    
+    # 生成报告
+    jsonl_path = "./evaluation_data/evaluation_records.jsonl"
+    report = generate_evaluation_report(jsonl_path, output_path)
+    
+    # 显示总体统计
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.metric("总视频数", report['total_statistics']['total_videos'])
+    with col2:
+        st.metric("总标签数", report['total_statistics']['total_tags'])
+    with col3:
+        st.metric("正确标签数", report['total_statistics']['correct_tags'])
+    with col4:
+        st.metric("错误标签数", report['total_statistics']['wrong_tags'])
+    with col5:
+        st.metric("遗漏标签数", report['total_statistics']['missed_tags'])
+    
+    # 显示准确率
+    st.metric(
+        "总体准确率", 
+        f"{(report['total_statistics']['correct_tags']/report['total_statistics']['total_tags']*100):.1f}%"
+    )
+    
+    # 显示图表
+    st.subheader("评测结果可视化")
+    
+    # 创建三个标签页
+    tab1, tab2, tab3 = st.tabs(["总体分布", "准确率分析", "召回率分析"])
+    
+    # 总体分布标签页
+    with tab1:
+        try:
+            with open(f"{output_path}/overall_accuracy.html", "r", encoding='utf-8') as f:
+                data = f.read()
+                st.components.v1.html(data, height=600)
+                st.download_button(
+                    label="下载总体准确率图表",
+                    data=data,
+                    file_name="overall_accuracy.html",
+                    mime="text/html"
+                )
+        except FileNotFoundError:
+            st.warning("总体准确率图表文件不存在")
+    
+    # 准确率分析标签页
+    with tab2:
+        try:
+            with open(f"{output_path}/tag_accuracy.html", "r", encoding='utf-8') as f:
+                data = f.read()
+                st.components.v1.html(data, height=600)
+                st.download_button(
+                    label="下载标签准确率图表",
+                    data=data,
+                    file_name="tag_accuracy.html",
+                    mime="text/html"
+                )
+        except FileNotFoundError:
+            st.warning("标签准确率图表文件不存在")
+            
+    # 召回率分析标签页
+    with tab3:
+        try:
+            with open(f"{output_path}/tag_recall.html", "r", encoding='utf-8') as f:
+                data = f.read()
+                st.components.v1.html(data, height=600)
+                st.download_button(
+                    label="下载标签召回率图表",
+                    data=data,
+                    file_name="tag_recall.html",
+                    mime="text/html"
+                )
+        except FileNotFoundError:
+            st.warning("标签召回率图表文件不存在")
 
 if __name__ == "__main__":
     main() 
