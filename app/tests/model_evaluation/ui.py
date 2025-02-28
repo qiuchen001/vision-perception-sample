@@ -575,14 +575,38 @@ def show_visualization():
     # 总体分布标签页
     with tab1:
         try:
+            # 显示图表
             with open(f"{output_path}/overall_accuracy.html", "r", encoding='utf-8') as f:
                 data = f.read()
-                st.components.v1.html(data, height=600)
+                st.components.v1.html(data, height=800)
+            
+            # 创建下载按钮的列布局
+            col1, col2 = st.columns(2)
+            
+            # 图表下载按钮
+            with col1:
                 st.download_button(
-                    label="下载总体准确率图表",
+                    label="下载总体分布图表",
                     data=data,
                     file_name="overall_accuracy.html",
                     mime="text/html"
+                )
+            
+            # JSON数据下载按钮
+            with col2:
+                overall_data = {
+                    "total_statistics": report['total_statistics'],
+                    "distribution": {
+                        "correct_tags": report['total_statistics']['correct_tags'],
+                        "wrong_tags": report['total_statistics']['wrong_tags'],
+                        "missed_tags": report['total_statistics']['missed_tags']
+                    }
+                }
+                st.download_button(
+                    label="下载总体分布数据",
+                    data=json.dumps(overall_data, ensure_ascii=False, indent=2),
+                    file_name="overall_distribution.json",
+                    mime="application/json"
                 )
         except FileNotFoundError:
             st.warning("总体准确率图表文件不存在")
@@ -590,14 +614,35 @@ def show_visualization():
     # 准确率分析标签页
     with tab2:
         try:
+            # 显示图表
             with open(f"{output_path}/tag_accuracy.html", "r", encoding='utf-8') as f:
                 data = f.read()
-                st.components.v1.html(data, height=600)
+                st.components.v1.html(data, height=1000)
+            
+            # 创建下载按钮的列布局
+            col1, col2 = st.columns(2)
+            
+            # 图表下载按钮
+            with col1:
                 st.download_button(
-                    label="下载标签准确率图表",
+                    label="下载准确率分析图表",
                     data=data,
                     file_name="tag_accuracy.html",
                     mime="text/html"
+                )
+            
+            # JSON数据下载按钮
+            with col2:
+                accuracy_data = {
+                    "overall_accuracy": f"{(report['total_statistics']['correct_tags']/report['total_statistics']['total_tags']*100):.1f}%",
+                    "tag_accuracy": report.get('tag_statistics', {}),
+                    "accuracy_by_type": report.get('accuracy_by_type', {})
+                }
+                st.download_button(
+                    label="下载准确率分析数据",
+                    data=json.dumps(accuracy_data, ensure_ascii=False, indent=2),
+                    file_name="accuracy_analysis.json",
+                    mime="application/json"
                 )
         except FileNotFoundError:
             st.warning("标签准确率图表文件不存在")
@@ -605,14 +650,38 @@ def show_visualization():
     # 召回率分析标签页
     with tab3:
         try:
+            # 显示图表
             with open(f"{output_path}/tag_recall.html", "r", encoding='utf-8') as f:
                 data = f.read()
-                st.components.v1.html(data, height=600)
+                st.components.v1.html(data, height=1000)
+            
+            # 创建下载按钮的列布局
+            col1, col2 = st.columns(2)
+            
+            # 图表下载按钮
+            with col1:
                 st.download_button(
-                    label="下载标签召回率图表",
+                    label="下载召回率分析图表",
                     data=data,
                     file_name="tag_recall.html",
                     mime="text/html"
+                )
+            
+            # JSON数据下载按钮
+            with col2:
+                recall_data = {
+                    "tag_recall": report.get('tag_statistics', {}),
+                    "missed_tags_analysis": {
+                        "total_missed": report['total_statistics']['missed_tags'],
+                        "missed_by_type": report.get('missed_tags_by_type', {}),
+                        "average_missed_per_video": report['total_statistics']['missed_tags'] / report['total_statistics']['total_videos'] if report['total_statistics']['total_videos'] > 0 else 0
+                    }
+                }
+                st.download_button(
+                    label="下载召回率分析数据",
+                    data=json.dumps(recall_data, ensure_ascii=False, indent=2),
+                    file_name="recall_analysis.json",
+                    mime="application/json"
                 )
         except FileNotFoundError:
             st.warning("标签召回率图表文件不存在")
