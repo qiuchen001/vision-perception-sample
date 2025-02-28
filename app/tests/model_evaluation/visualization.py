@@ -149,7 +149,7 @@ def generate_evaluation_report(jsonl_path, output_path):
                 continue
                 
             # 计算准确率
-            accuracy = (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0
+            accuracy = (stats['correct'] / stats['model_tags'] * 100) if stats['model_tags'] > 0 else 0
             
             # 计算召回率
             recall_denominator = stats['model_tags'] - stats['wrong'] + stats['missed']
@@ -160,7 +160,8 @@ def generate_evaluation_report(jsonl_path, output_path):
                 'tag': tag,
                 'accuracy': accuracy,
                 'recall_rate': recall_rate,
-                'total': stats['total'],
+                'accuracy_total': stats['model_tags'],  # 准确率的分母
+                'recall_total': recall_denominator,     # 召回率的分母
                 'correct': stats['correct'],
                 'wrong': stats['wrong'],
                 'missed': stats['missed'],
@@ -168,12 +169,12 @@ def generate_evaluation_report(jsonl_path, output_path):
             })
         
         # 按总样本量排序
-        tag_data.sort(key=lambda x: x['total'], reverse=True)
+        tag_data.sort(key=lambda x: x['recall_total'], reverse=True)
         
         # 提取绘图所需的数据
         tags = [d['tag'] for d in tag_data]
         recall_rates = [d['recall_rate'] for d in tag_data]
-        sample_sizes = [d['total'] for d in tag_data]
+        sample_sizes = [d['recall_total'] for d in tag_data]
         
         # 生成准确率分析图表
         fig_accuracy = go.Figure()
@@ -190,12 +191,12 @@ def generate_evaluation_report(jsonl_path, output_path):
         # 添加样本量散点图
         fig_accuracy.add_trace(go.Scatter(
             x=[d['tag'] for d in tag_data],
-            y=[d['total'] for d in tag_data],
+            y=[d['accuracy_total'] for d in tag_data],
             name='样本量',
             yaxis='y2',
             mode='markers+text',
             marker=dict(size=12, color='#3498db'),
-            text=[d['total'] for d in tag_data],
+            text=[d['accuracy_total'] for d in tag_data],
             textposition='top center'
         ))
         
@@ -253,12 +254,12 @@ def generate_evaluation_report(jsonl_path, output_path):
         # 添加样本量散点图
         fig_recall.add_trace(go.Scatter(
             x=[d['tag'] for d in tag_data],
-            y=[d['total'] for d in tag_data],
+            y=[d['recall_total'] for d in tag_data],
             name='样本量',
             yaxis='y2',
             mode='markers+text',
             marker=dict(size=12, color='#3498db'),
-            text=[d['total'] for d in tag_data],
+            text=[d['recall_total'] for d in tag_data],
             textposition='top center'
         ))
         
@@ -325,7 +326,7 @@ def generate_evaluation_report(jsonl_path, output_path):
         for data in tag_data:
             tag_analysis.append({
                 '标签': clean_tag_format(data['tag']),
-                '样本量': data['total'],
+                '样本量': data['recall_total'],
                 '准确率': f"{data['accuracy']:.1f}%",
                 '召回率': f"{data['recall_rate']:.1f}%",
                 '正确数': data['correct'],
