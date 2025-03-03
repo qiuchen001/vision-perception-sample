@@ -154,9 +154,11 @@ def format_gallery_html(gallery_data):
     <style>
     .custom-gallery {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 20px;
         padding: 20px;
+        width: 100%;
+        box-sizing: border-box;
     }
     .video-card {
         background: white;
@@ -165,6 +167,10 @@ def format_gallery_html(gallery_data):
         overflow: hidden;
         cursor: pointer;
         transition: transform 0.2s;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     .video-card:hover {
         transform: translateY(-2px);
@@ -177,23 +183,32 @@ def format_gallery_html(gallery_data):
     }
     .video-info {
         padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
     }
     .video-title {
         font-weight: bold;
         font-size: 16px;
         margin-bottom: 8px;
         color: #333;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .video-tags {
         color: #666;
         font-size: 14px;
+        margin-top: auto;
     }
     </style>
 
     <div class="custom-gallery">
     """
     
-    # 添加视频卡片，不需要onclick事件
+    # 添加视频卡片
     for idx, (thumbnail_url, title, tags) in enumerate(gallery_data):
         html += f"""
         <div class="video-card">
@@ -381,10 +396,13 @@ def create_interface():
         padding: 1.5rem;
         border-radius: 10px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        width: 100%;
+        box-sizing: border-box;
     }
     .gallery-area {
-        flex: 1;
+        flex: 2;  /* 增加gallery区域的比例 */
         min-width: 0;
+        width: 100%;
     }
     .video-area {
         flex: 1;
@@ -413,9 +431,14 @@ def create_interface():
     .search-button:hover {
         background: #0056b3;
     }
-    /* Gallery式 */
+    /* Gallery式布局 */
     .gallery-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
         gap: 1.5rem !important;
+        width: 100% !important;
+        padding: 1rem !important;
+        box-sizing: border-box !important;
     }
     
     .gallery-grid > div {
@@ -424,8 +447,14 @@ def create_interface():
         border-radius: 8px !important;
         background: white !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        height: auto !important;  /* 允许高度自适应 */
-        overflow: visible !important;
+        height: 100% !important;
+        overflow: hidden !important;
+        transition: transform 0.2s !important;
+    }
+    
+    .gallery-grid > div:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
     }
     
     .gallery-grid > div > img {
@@ -433,18 +462,15 @@ def create_interface():
         aspect-ratio: 16/9 !important;
         object-fit: cover !important;
         border-radius: 8px 8px 0 0 !important;
-        margin-bottom: 0 !important;  /* 除图片底部边距 */
+        margin-bottom: 0 !important;
     }
     
     .gallery-grid > div > .caption {
-        position: relative !important;  /* 改为相对定位 */
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background: white !important;
         padding: 1rem !important;
+        background: white !important;
         border-radius: 0 0 8px 8px !important;
         border-top: 1px solid #eee !important;
+        flex-grow: 1 !important;
     }
     
     .gallery-grid .title {
@@ -453,52 +479,16 @@ def create_interface():
         color: #333 !important;
         margin-bottom: 0.5rem !important;
         line-height: 1.4 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
     }
     
     .gallery-grid .tags {
         color: #666 !important;
         font-size: 0.9rem !important;
         line-height: 1.4 !important;
-    }
-    
-    /* 自定义网格布局 */
-    .custom-gallery {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        padding: 20px;
-    }
-    
-    .video-card {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .video-thumbnail {
-        width: 100%;
-        aspect-ratio: 16/9;
-        object-fit: cover;
-    }
-    
-    .video-info {
-        padding: 15px;
-        background: white;
-    }
-    
-    .video-title {
-        font-weight: bold;
-        font-size: 16px;
-        margin-bottom: 8px;
-        color: #333;
-    }
-    
-    .video-tags {
-        color: #666;
-        font-size: 14px;
     }
     """
 
