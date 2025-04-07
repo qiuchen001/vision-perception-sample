@@ -145,6 +145,6 @@ def remove_video_watermark(video_path, output_path):
 
 
 if __name__ == "__main__":
-    input_video = "input_video.mp4"
+    input_video = "processed_54415cb81748d4f86b34b5b0cdf435db.mp4"
     output_video = "output_video.mp4"
     remove_video_watermark(input_video, output_video)

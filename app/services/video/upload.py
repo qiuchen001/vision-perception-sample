@@ -4,6 +4,8 @@ from PIL import Image
 import uuid
 import os
 from typing import Dict, Any, List, Tuple
+from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 
 from app.dao.video_dao import VideoDAO
 from app.utils.logger import logger
@@ -12,7 +14,6 @@ from app.utils.text_embedding import *
 from app.utils.minio_uploader import MinioFileUploader
 from app.utils.clip_embedding import clip_embedding
 from app.utils.milvus_operator import video_frame_operator
-from werkzeug.utils import secure_filename
 from config import Config
 from app.utils.video_processor import VideoProcessor
 from app.prompt.title import system_instruction, prompt
@@ -28,7 +29,7 @@ class UploadVideoService:
         self.batch_size = Config.VIDEO_FRAME_BATCH_SIZE
         self.video_processor = VideoProcessor()
 
-    def upload(self, video_file) -> Dict[str, Any]:
+    def upload(self, video_file: FileStorage) -> Dict[str, Any]:
         """
         上传视频并处理。
         
