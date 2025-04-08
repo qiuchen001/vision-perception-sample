@@ -86,7 +86,7 @@ def get_video_paginator(
     try:
         # 如果未指定host和db_name,从环境变量获取
         if not host:
-            host = f"http://{os.getenv('SERVER_HOST')}:19530"
+            host = f"http://{os.getenv('MILVUS_HOST')}:19530"
         if not db_name:
             db_name = os.getenv("DB_NAME")
 
