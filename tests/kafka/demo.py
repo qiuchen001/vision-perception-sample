@@ -1,4 +1,4 @@
-from kafka.admin import KafkaAdminClient
+from kafka.admin import KafkaAdminClient, NewTopic
 from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import NoBrokersAvailable, KafkaError
 import json
@@ -7,7 +7,11 @@ import sys
 import time
 
 # Kafka 配置
-bootstrap_servers = '10.66.12.37:30094'
+# bootstrap_servers = '10.66.12.37:30094'
+# bootstrap_servers = '10.66.8.51:30096'
+# bootstrap_servers = '10.66.12.37:30096'
+bootstrap_servers = '10.66.12.37:30092'
+# bootstrap_servers = '10.66.12.37:30095'
 security_protocol = 'SASL_PLAINTEXT'
 sasl_mechanism = 'PLAIN'
 sasl_plain_username = 'client'
@@ -21,6 +25,28 @@ admin_client = KafkaAdminClient(
     sasl_plain_username=sasl_plain_username,
     sasl_plain_password=sasl_plain_password,
 )
+
+
+def create_topic(topic_name, num_partitions=1, replication_factor=1):
+    try:
+        # 2. 将元组 ( ) 更改为 NewTopic( ) 对象
+        topic_list = [
+            NewTopic(name=topic_name,
+                     num_partitions=num_partitions,
+                     replication_factor=replication_factor)
+        ]
+
+        # 创建 Topic
+        admin_client.create_topics(
+            new_topics=topic_list,
+            validate_only=False
+        )
+        print(f"Topic '{topic_name}' has been created.")
+
+    except Exception as e:
+        print(f"Failed to create topic '{topic_name}': {e}")
+
+
 
 # 获取 Topic 列表
 topic_list = admin_client.list_topics()
@@ -59,7 +85,7 @@ def delete_topic(topic_name):
 
 
 # 消费指定 Topic 的消息
-def consume_messages(topic_name, max_messages=5, timeout_ms=5000):
+def consume_messages(topic_name, max_messages=50, timeout_ms=5000):
     try:
         # 创建 KafkaConsumer 客户端
         consumer = KafkaConsumer(
@@ -257,13 +283,39 @@ def consume_latest_messages(topic_name):
 
 
 if __name__ == "__main__":
-    # 发送消息
-    send_message("public-collect-import-success", {
-        "taskid": "9cf99967-aa69-44cd-b4f2-d22d886817fb",
-        # "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
-        "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
-    })
+    # create_topic("public-xodr-transform-result")
 
-    # 消费消息
-    # 持续消费指定Topic的最新消息
-    # consume_latest_messages("public-vision-perception-upload-success")
+    #
+    # # send_message("public-vision-perception-trigger", {
+    # send_message("public-structure-job-trigger", {
+    # # send_message("public-log2world-trigger", {
+    #     "taskid": "9cf99967-aa69-44cd-b4f2-d22d886817fb",
+    #     # "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    #     # "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    #     "rawId": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    # })
+    #
+    # print("*" * 50)
+
+    # send_message("public-vision-perception-upload-success", {
+    #     "taskid": "9cf99967-aa69-44cd-b4f2-d22d886817fb",
+    #     # "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    #     # "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    #     "raw_id": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
+    # })
+
+
+
+    # # 发送消息
+    # # message = {"result":[{"behaviour":{"behaviourId":"V1","behaviourName":"压线行驶","timeRange":"0:00:03-0:00:05"},"analysis":"视频中，道路两侧停有多辆大型货车和小型车辆。在00:03-00:05期间，一辆白色卡车从右侧车道驶入画面，并缓慢行驶至前方，可能是在进行装卸货物或等待指令。这表明该区域可能是物流园区或工业区，存在频繁的货运活动。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_3.jpg"},{"behaviour":{"behaviourId":"E5","behaviourName":"阴天","timeRange":"0:00:00-0:00:08"},"analysis":"整个视频区间内，天气阴沉，天空布满厚重的云层，但没有明显的雨雪迹象，能见度尚可。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"E2","behaviourName":"城市主干道","timeRange":"0:00:00-0:00:08"},"analysis":"视频中的道路为城市主干道，路面宽阔，设有双黄实线分隔双向车道，路边有明显的停车区域和施工围挡。道路两旁是多层建筑，包括办公楼和仓库，显示出典型的商业或工业区特征。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"E12","behaviourName":"施工","timeRange":"0:00:00-0:00:08"},"analysis":"视频中可以看到道路左侧有一段施工区域，用橙色围挡隔离，部分区域堆放着建筑材料或设备，表明该路段正在进行维护或扩建工作。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"}],"trace_id":"1474900d91b043a6a245133b11b924f2.87.17442546578770013","raw_id":"9a8afc7e-19de-4e13-8b3c-44794ccb49c6","task_id":"084e4e12-027a-4629-b19b-66cced6ff220"}
+    # # message = {"result":[{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"压线行驶","timeRange":"0:00:03-0:00:05"},"analysis":"视频中，道路两侧停有多辆大型货车和小型车辆。在00:03-00:05期间，一辆白色卡车从右侧车道驶入画面，并缓慢行驶至前方，可能是在进行装卸货物或等待指令。这表明该区域可能是物流园区或工业区，存在频繁的货运活动。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_3.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"阴天","timeRange":"0:00:00-0:00:08"},"analysis":"整个视频区间内，天气阴沉，天空布满厚重的云层，但没有明显的雨雪迹象，能见度尚可。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"城市主干道","timeRange":"0:00:00-0:00:08"},"analysis":"视频中的道路为城市主干道，路面宽阔，设有双黄实线分隔双向车道，路边有明显的停车区域和施工围挡。道路两旁是多层建筑，包括办公楼和仓库，显示出典型的商业或工业区特征。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"施工","timeRange":"0:00:00-0:00:08"},"analysis":"视频中可以看到道路左侧有一段施工区域，用橙色围挡隔离，部分区域堆放着建筑材料或设备，表明该路段正在进行维护或扩建工作。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"}],"trace_id":"1474900d91b043a6a245133b11b924f2.87.17442546578770013","raw_id":"9a8afc7e-19de-4e13-8b3c-44794ccb49c6","task_id":"084e4e12-027a-4629-b19b-66cced6ff220"}
+    # message = {"result":[{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"压线行驶","timeRange":"0:00:03-0:00:05"},"analysis":"视频中，道路两侧停有多辆大型货车和小型车辆。在00:03-00:05期间，一辆白色卡车从右侧车道驶入画面，并缓慢行驶至前方，可能是在进行装卸货物或等待指令。这表明该区域可能是物流园区或工业区，存在频繁的货运活动。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_3.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"阴天","timeRange":"0:00:00-0:00:07"},"analysis":"整个视频区间内，天气阴沉，天空布满厚重的云层，但没有明显的雨雪迹象，能见度尚可。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"城市主干道","timeRange":"0:00:00-0:00:08"},"analysis":"视频中的道路为城市主干道，路面宽阔，设有双黄实线分隔双向车道，路边有明显的停车区域和施工围挡。道路两旁是多层建筑，包括办公楼和仓库，显示出典型的商业或工业区特征。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"},{"behaviour":{"behaviourId":"190953492087844864","behaviourName":"施工","timeRange":"0:00:00-0:00:06"},"analysis":"视频中可以看到道路左侧有一段施工区域，用橙色围挡隔离，部分区域堆放着建筑材料或设备，表明该路段正在进行维护或扩建工作。","thumbnail_url":"http://10.66.8.51:9000/perception-mining/219f4e0a-8552-4175-976e-2b7835aa4e78.mp4_t_0.jpg"}],"trace_id":"1474900d91b043a6a245133b11b924f2.87.17442546578770013","raw_id":"9a8afc7e-19de-4e13-8b3c-44794ccb49c6","task_id":"084e4e12-027a-4629-b19b-66cced6ff220"}
+    # send_message("public-vision-perception-mining-success", message)
+    #
+    # # 消费消息
+    # # 持续消费指定Topic的最新消息
+    # # consume_latest_messages("public-vision-perception-mining-success")
+    consume_latest_messages("public-structure-job-trigger")
+    # #
+    # consume_messages("public-vision-perception-mining-success")
+    # consume_messages("public-structure-job-trigger")
