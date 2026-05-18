@@ -11,6 +11,7 @@ import time
 # bootstrap_servers = '10.66.8.51:30096'
 # bootstrap_servers = '10.66.12.37:30096'
 bootstrap_servers = '10.66.12.37:30092'
+# bootstrap_servers = '14.103.238.131:30010'
 # bootstrap_servers = '10.66.12.37:30095'
 security_protocol = 'SASL_PLAINTEXT'
 sasl_mechanism = 'PLAIN'
@@ -295,7 +296,7 @@ if __name__ == "__main__":
     #     "rawId": "9a8afc7e-19de-4e13-8b3c-44794ccb49c6"
     # })
     #
-    # print("*" * 50)
+    print("*" * 50)
 
     # send_message("public-vision-perception-upload-success", {
     #     "taskid": "9cf99967-aa69-44cd-b4f2-d22d886817fb",
@@ -315,7 +316,10 @@ if __name__ == "__main__":
     # # 消费消息
     # # 持续消费指定Topic的最新消息
     # # consume_latest_messages("public-vision-perception-mining-success")
-    consume_latest_messages("public-structure-job-trigger")
+    # consume_latest_messages("public-structure-job-trigger")
     # #
     # consume_messages("public-vision-perception-mining-success")
     # consume_messages("public-structure-job-trigger")
+
+    # message = {"taskid": "test-job-0404-v9", "scene_idx": "004"}
+    # send_message("public-train-model-trigger", message)
